@@ -103,10 +103,11 @@
       <h2>Rama's Arrow &middot; Burn Lanka</h2>
       <p class="rules">Yuddha Kanda &mdash; The Ten Heads of Raavan</p>
       <p>Raavan has <b>ten heads</b>. A single arrow cannot fell him &mdash; every head must be
-         struck and burned away. He will mock you while you draw.</p>
-      <p>Aim at the heads. <b>Hold</b> to draw the bow, <b>release</b> to loose the arrow.
-         Wind drifts your shot &mdash; watch the banner and the aim trail.</p>
-      <p class="rules">Twelve arrows. Ten heads. When the last head falls, Lanka burns and Sita is free.</p>
+         struck and burned away, while he mocks you from the walls of Lanka.</p>
+      <p>Aim at the heads. <b>Hold</b> to draw &mdash; a dotted trail shows exactly where the arrow
+         will fly, and your last two shots stay marked in the air. <b>Release</b> to loose.</p>
+      <p class="rules">Twelve arrows. Ten heads. The vanara army of Sugriva roars at your back;
+         Raavan's asuras cower behind him.</p>
       <button class="btn" id="startBtn">Draw the Bow</button>
       <p style="opacity:.62;font-size:clamp(9.5px,1.8vmin,14px)" id="ctrlHint">
         <span class="kbd">SPACE</span> to draw &middot; move the mouse to aim</p>
@@ -319,11 +320,21 @@ var RAVAN_HEADS = (function(){
   return out;
 })();
 
+/* The body is a solid hitbox — but it must never become a wall standing in
+   front of the head cluster, or the lower heads (especially the right-hand
+   ones) become impossible to reach. So the chest is a trapezoid that follows
+   the drawn torso exactly and stops at the shoulder line, just under the
+   bottom head row. Only the lower body is built from circles. */
 var TORSO = [
-  { x: RAV.x, y: 456, r: 90 },
-  { x: RAV.x, y: 545, r: 82 },
-  { x: RAV.x, y: 620, r: 72 }
+  { x: RAV.x, y: 578, r: 84 },
+  { x: RAV.x, y: 624, r: 72 }
 ];
+
+function inChest(px, py){
+  if (py < 412 || py > 560) return false;
+  var t = (py - 412) / 148;                 // shoulders -> waist
+  return Math.abs(px - RAV.x) <= 96 - t * 22;
+}
 
 function headsLeft(){
   var n = 0;
@@ -374,6 +385,7 @@ var game = {
   tauntTimer: 3,
   recent: [],
   arrow: null,
+  ghosts: [],
   resolveKind: 'miss',
   resolveT: 0,
   resolveDur: 0.9,
@@ -381,9 +393,10 @@ var game = {
   shots: 0
 };
 
+var shotPath = [];      // the flight path of the arrow currently in the air
+
 /* HUD is drawn in a virtual space where 1 unit = 1 CSS pixel, so text
-   stays legible on a phone the size of a matchbox. */
-var hud = { s: 1, vw: W, vh: H, compact: false };
+   stays legible on a phone the size of a matchbox. */var hud = { s: 1, vw: W, vh: H, compact: false };
 function layout(){
   var cw = canvas.clientWidth || W;
   hud.s = clamp(W / cw, 1, 2.6);
@@ -615,12 +628,15 @@ function releaseArrow(){
     vx: Math.cos(a) * sp,
     vy: Math.sin(a) * sp,
     rot: a,
+    tx: x + Math.cos(a) * 17,      // last tested tip, for swept hit tests
+    ty: y + Math.sin(a) * 17,
     trail: [],
     age: 0
   };
   game.stuckGround = null;
   game.state = 'fly';
   game.power = 0;
+  shotPath = [];
   Snd.release();
   for (var i = 0; i < 14; i++) sparks.push(spawnSpark(x, y, 160));
 }
@@ -632,9 +648,25 @@ function hitTest(px, py){
     var dx = px - h.x, dy = py - h.y;
     if (dx * dx + dy * dy < (h.r + 3) * (h.r + 3)) return { kind: 'head', head: h };
   }
+  if (inChest(px, py)) return { kind: 'body' };
   for (var j = 0; j < TORSO.length; j++){
     var ex = px - TORSO[j].x, ey = py - TORSO[j].y;
     if (ex * ex + ey * ey < TORSO[j].r * TORSO[j].r) return { kind: 'body' };
+  }
+  return null;
+}
+
+/* An arrow can travel ~25px in a single 1/60s step, and more on a steep
+   plunge, so testing only the tip can let it skip straight past a head.
+   Walk the whole step instead. Used by both the flight and the aim guide,
+   which keeps the preview an exact match for the real shot. */
+function sweepHit(x0, y0, x1, y1){
+  for (var s = 1; s <= 3; s++){
+    var f = s / 3;
+    var sx = x0 + (x1 - x0) * f;
+    var sy = y0 + (y1 - y0) * f;
+    var h = hitTest(sx, sy);
+    if (h) return { kind: h.kind, head: h.head, x: sx, y: sy };
   }
   return null;
 }
@@ -645,6 +677,11 @@ function beginResolve(kind, dur){
   game.resolveT = 0;
   game.resolveDur = dur;
   game.state = 'resolve';
+  if (shotPath.length > 4){
+    game.ghosts.push(shotPath);
+    if (game.ghosts.length > 2) game.ghosts.shift();
+  }
+  shotPath = [];
 }
 
 function headDown(h){
@@ -662,6 +699,7 @@ function headDown(h){
   game.flash = 0.7;
   Snd.headHit();
   setTimeout(function(){ Snd.fire(); }, 90);
+  armyCheer();
 
   var down = TOTAL_HEADS - headsLeft();
   addFloater(h.x, h.y - 44, 'HEAD ' + down + ' / ' + TOTAL_HEADS, '#ffc75a');
@@ -700,6 +738,7 @@ function startBurn(){
   game.burnT = 0;
   game.shake = 30;
   game.flash = 1;
+  armyFlee();
   Snd.roar();
   setTimeout(function(){ Snd.fire(); }, 120);
   showToast('लंका जल उठी', 'Raavan falls — Lanka burns!', 3);
@@ -745,8 +784,78 @@ function resetGame(){
   game.recent = [];
   for (var i = 0; i < RAVAN_HEADS.length; i++) RAVAN_HEADS[i].alive = true;
   sparks.length = 0; wreck.length = 0; floaters.length = 0;
+  game.ghosts = [];
+  shotPath = [];
+  resetArmy();
   setWind();
   raavanSay(pick(TAUNTS), 4.4);
+}
+
+/* ============================================================
+   The armies — vanaras behind Ram, asuras behind Raavan
+   ============================================================ */
+var army = [];
+(function(){
+  var r = mulberry32(4242);
+  function add(kind, x, feetY, s, facing){
+    army.push({
+      kind: kind, x: x, x0: x, y: feetY, s: s,
+      facing: facing, facing0: facing,
+      phase: r() * 6.283, spd: 0.75 + r() * 0.9,
+      mode: 'idle', mt: 0, queue: 0, queued: 'cheer', forever: false,
+      weapon: r()
+    });
+  }
+  var x;
+  // vanara sena — left flank
+  for (x = 6; x < 474; x += 30 + r() * 14) add('vanara', x, GROUND - 52, 0.34 + r() * 0.05, 1);
+  for (x = 10; x < 448; x += 42 + r() * 16) add('vanara', x, GROUND - 14, 0.52 + r() * 0.07, 1);
+  // asura ranks — right flank
+  for (x = 1116; x < 1284; x += 30 + r() * 14) add('asura', x, GROUND - 52, 0.34 + r() * 0.05, -1);
+  for (x = 1132; x < 1278; x += 42 + r() * 16) add('asura', x, GROUND - 14, 0.52 + r() * 0.07, -1);
+  army.sort(function(a, b){ return a.y - b.y; });
+})();
+
+function armyCheer(){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    if (u.kind === 'vanara'){ u.queue = Math.random() * 0.55; u.queued = 'cheer'; }
+    else { u.queue = Math.random() * 0.45; u.queued = 'cower'; }
+  }
+}
+function armyFlee(){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    if (u.kind === 'vanara'){ u.mode = 'cheer'; u.forever = true; u.mt = Math.random(); }
+    else { u.mode = 'flee'; u.facing = 1; u.queue = 0; u.mt = 0; }
+  }
+}
+function resetArmy(){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    u.x = u.x0; u.facing = u.facing0;
+    u.mode = 'idle'; u.mt = 0; u.queue = 0; u.forever = false; u.gone = false;
+  }
+}
+function updateArmy(dt){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    u.mt += dt;
+    if (u.queue > 0){
+      u.queue -= dt;
+      if (u.queue <= 0 && u.mode === 'idle'){ u.mode = u.queued; u.mt = 0; }
+    }
+    if (u.mode === 'idle'){
+      if (Math.random() < 0.0045){ u.mode = 'cheer'; u.mt = 0; }
+    } else if (u.mode === 'cheer'){
+      if (!u.forever && u.mt > 1.5){ u.mode = 'idle'; u.mt = 0; }
+    } else if (u.mode === 'cower'){
+      if (u.mt > 1.4){ u.mode = 'idle'; u.mt = 0; }
+    } else if (u.mode === 'flee'){
+      u.x += 150 * dt * u.s;
+      if (u.x > W + 70){ u.mode = 'idle'; u.gone = true; }
+    }
+  }
 }
 
 /* ============================================================
@@ -820,6 +929,8 @@ function update(dt){
   stepParticles(wreck, dt, 60, 0.4);
   stepParticles(sparks, dt, 220, 0.9);
 
+  updateArmy(dt);
+
   // ---- aim / charge ----
   if (game.state === 'aim'){
     var want = Math.atan2(pointer.y - BOW.y, pointer.x - BOW.x);
@@ -850,6 +961,9 @@ function update(dt){
 
     a.trail.push({ x: a.x, y: a.y });
     if (a.trail.length > 22) a.trail.shift();
+    if (Math.floor(a.age * 60) % 3 === 0 && shotPath.length < 400){
+      shotPath.push({ x: a.x, y: a.y });
+    }
 
     if (Math.random() < 0.7){
       sparks.push(spawnSpark(a.x - Math.cos(a.rot) * 16, a.y - Math.sin(a.rot) * 16, 70));
@@ -857,10 +971,12 @@ function update(dt){
 
     var tipX = a.x + Math.cos(a.rot) * 17;
     var tipY = a.y + Math.sin(a.rot) * 17;
-    var hit = hitTest(tipX, tipY);
+    var hit = sweepHit(a.tx, a.ty, tipX, tipY);
+    a.tx = tipX;
+    a.ty = tipY;
 
     if (hit && hit.kind === 'head'){ headDown(hit.head); }
-    else if (hit){ bodyBlocked({ x: tipX, y: tipY }); }
+    else if (hit){ bodyBlocked({ x: hit.x, y: hit.y }); }
     else if (a.y >= GROUND - 2){
       game.stuckGround = { x: a.x, y: GROUND - 2, rot: a.rot };
       game.arrow = null;
@@ -1343,6 +1459,189 @@ function drawSita(x, t){
 }
 
 /* ============================================================
+   The two armies — little soldiers in the midground
+   ============================================================ */
+function drawVanara(u){
+  var s = u.s;
+  var cheer = u.mode === 'cheer';
+  var hop = cheer ? Math.abs(Math.sin(u.mt * 11)) * 9 : 0;
+  var bob = Math.sin(game.time * u.spd * 1.6 + u.phase) * 1.5;
+  var cower = u.mode === 'cower';
+
+  ctx.save();
+  ctx.translate(u.x, u.y - hop * s + bob * s);
+  ctx.scale(s * u.facing, s);
+
+  var FUR = '#a8703a', FURD = '#7d4f22', SKIN = '#d8ab72', CLOTH = '#e0b53f';
+
+  // tail
+  ctx.strokeStyle = FURD; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-6, -20);
+  ctx.quadraticCurveTo(-28, -24, -25, -48);
+  ctx.quadraticCurveTo(-23, -60, -33, -58);
+  ctx.stroke();
+
+  // legs
+  ctx.strokeStyle = FURD; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(-4, -17); ctx.lineTo(-6 - (cheer ? 3 : 0), -1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(5, -17); ctx.lineTo(7 + (cheer ? 3 : 0), -1); ctx.stroke();
+
+  // dhoti
+  ctx.fillStyle = CLOTH;
+  ctx.beginPath();
+  ctx.moveTo(-10, -30); ctx.lineTo(10, -30); ctx.lineTo(12, -15); ctx.lineTo(-12, -15);
+  ctx.closePath(); ctx.fill();
+
+  // torso
+  ctx.fillStyle = cower ? FURD : FUR;
+  ctx.beginPath();
+  ctx.moveTo(-9, -54); ctx.lineTo(9, -54); ctx.lineTo(11, -30); ctx.lineTo(-11, -30);
+  ctx.closePath(); ctx.fill();
+
+  // chest band
+  ctx.fillStyle = 'rgba(255,210,110,0.9)';
+  ctx.fillRect(-8, -50, 16, 5);
+
+  // arms
+  ctx.strokeStyle = FUR; ctx.lineWidth = 4.2;
+  if (cheer){
+    ctx.beginPath(); ctx.moveTo(-7, -50); ctx.lineTo(-15, -72); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, -50); ctx.lineTo(16, -72); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(-7, -50); ctx.lineTo(-13, -36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, -50); ctx.lineTo(14, -42); ctx.stroke();
+  }
+
+  // spear
+  if (!cheer){
+    ctx.strokeStyle = '#6d4a24'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(12, -70); ctx.lineTo(4, -22); ctx.stroke();
+    ctx.fillStyle = '#dfe6ea';
+    ctx.beginPath();
+    ctx.moveTo(12, -70); ctx.lineTo(9.5, -78); ctx.lineTo(15, -75);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // head
+  ctx.fillStyle = FUR;
+  ctx.beginPath(); ctx.arc(1, -63, 9.6, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.arc(-8.4, -65, 3.4, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.arc(10.4, -65, 3.4, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = SKIN;
+  ctx.beginPath(); ctx.ellipse(4.4, -61, 5.4, 4.6, 0, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#1a1008';
+  ctx.beginPath(); ctx.arc(1.4, -65.5, 1.3, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(6.6, -65.5, 1.3, 0, 6.28); ctx.fill();
+  ctx.fillStyle = CLOTH;
+  ctx.fillRect(-8, -70.5, 18, 3.2);
+
+  ctx.restore();
+}
+
+function drawAsura(u){
+  var s = u.s;
+  var fleeing = u.mode === 'flee';
+  var cower = u.mode === 'cower';
+  var run = fleeing ? Math.abs(Math.sin(u.mt * 13)) : 0;
+  var bob = Math.sin(game.time * u.spd * 1.5 + u.phase) * 1.5;
+  var crouch = cower ? 4 : 0;
+
+  ctx.save();
+  ctx.translate(u.x, u.y - run * 5 * s + (bob + crouch) * s);
+  ctx.scale(s * u.facing, s);
+
+  var SKIN = '#5d1c14', SKIND = '#40110c', ARM = '#7a2a1a', BONE = '#d6c9ac';
+
+  // tail with a barbed tip
+  ctx.strokeStyle = SKIND; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-5, -18);
+  ctx.quadraticCurveTo(-24, -22, -22, -44);
+  ctx.stroke();
+  ctx.fillStyle = BONE;
+  ctx.beginPath();
+  ctx.moveTo(-22, -44); ctx.lineTo(-29, -52); ctx.lineTo(-19, -50);
+  ctx.closePath(); ctx.fill();
+
+  // legs
+  ctx.strokeStyle = SKIND; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(-4, -16); ctx.lineTo(-6 - run * 3, -1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(5, -16); ctx.lineTo(7 + run * 3, -1); ctx.stroke();
+
+  // loincloth
+  ctx.fillStyle = '#2b0e0a';
+  ctx.beginPath();
+  ctx.moveTo(-10, -28); ctx.lineTo(10, -28); ctx.lineTo(12, -14); ctx.lineTo(-12, -14);
+  ctx.closePath(); ctx.fill();
+
+  // torso
+  ctx.fillStyle = cower ? SKIND : SKIN;
+  ctx.beginPath();
+  ctx.moveTo(-10, -54); ctx.lineTo(10, -54); ctx.lineTo(12, -28); ctx.lineTo(-12, -28);
+  ctx.closePath(); ctx.fill();
+
+  ctx.fillStyle = ARM;
+  ctx.beginPath();
+  ctx.moveTo(-9, -50); ctx.lineTo(9, -50); ctx.lineTo(8, -34); ctx.lineTo(-8, -34);
+  ctx.closePath(); ctx.fill();
+
+  // spiked shoulders
+  ctx.fillStyle = BONE;
+  ctx.beginPath(); ctx.moveTo(-11, -54); ctx.lineTo(-17, -63); ctx.lineTo(-7, -56); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(11, -54); ctx.lineTo(17, -63); ctx.lineTo(7, -56); ctx.closePath(); ctx.fill();
+
+  // arms
+  ctx.strokeStyle = SKIN; ctx.lineWidth = 4.6;
+  if (fleeing){
+    ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-15, -63); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(16, -61); ctx.stroke();
+  } else if (cower){
+    ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-12, -67); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(12, -67); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-14, -36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(16, -46); ctx.stroke();
+  }
+
+  // mace
+  if (!fleeing && !cower){
+    ctx.strokeStyle = '#5a3a1c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(14, -72); ctx.lineTo(6, -20); ctx.stroke();
+    ctx.fillStyle = '#b9c2cc';
+    ctx.beginPath(); ctx.arc(16, -75, 4.6, 0, 6.2832); ctx.fill();
+  }
+
+  // head
+  ctx.fillStyle = cower ? SKIND : SKIN;
+  ctx.beginPath(); ctx.arc(1, -63, 9.4, 0, 6.2832); ctx.fill();
+
+  // horns
+  ctx.fillStyle = BONE;
+  ctx.beginPath(); ctx.moveTo(-5, -69); ctx.lineTo(-10, -81); ctx.lineTo(-1, -71); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(6, -69); ctx.lineTo(11, -81); ctx.lineTo(2, -71); ctx.closePath(); ctx.fill();
+
+  // glowing eyes
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  var eg = 0.7 + 0.3 * Math.sin(game.time * 5 + u.phase);
+  ctx.fillStyle = 'rgba(255,120,30,' + (0.85 * eg) + ')';
+  ctx.beginPath(); ctx.arc(1, -63.5, 2.1, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(7, -63.5, 2.1, 0, 6.28); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawArmy(){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    if (u.gone || u.x < -70 || u.x > W + 70) continue;
+    if (u.kind === 'vanara') drawVanara(u); else drawAsura(u);
+  }
+}
+
+/* ============================================================
    Raavan — ten heads, each one killable
    ============================================================ */
 function drawStump(h, t){
@@ -1618,28 +1917,106 @@ function drawStuckArrow(){
   ctx.restore();
 }
 
+/* ---------- aim guide: predicted arc, ghost trails, impact marker ---------- */
+function drawGhostTrails(){
+  for (var g = 0; g < game.ghosts.length; g++){
+    var path = game.ghosts[g];
+    var recency = (game.ghosts.length - 1) - g;      // 0 = most recent shot
+    var base = recency === 0 ? 0.32 : 0.15;
+    for (var i = 0; i < path.length; i += 2){
+      var p = path[i];
+      var f = 1 - (i / path.length) * 0.5;
+      ctx.fillStyle = 'rgba(255,240,210,' + (base * f) + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.3, 0, 6.2832);
+      ctx.fill();
+    }
+  }
+}
+
 function drawAimGuide(){
-  if (game.state !== 'aim' || !game.charging) return;
+  if (game.state !== 'aim') return;
+  drawGhostTrails();
+  if (!game.charging) return;
+
+  // full predicted flight — exactly the same maths the arrow will use
   var a = game.aimAngle, sp = arrowSpeed();
   var x = BOW.x + Math.cos(a) * 34, y = BOW.y + Math.sin(a) * 34;
   var vx = Math.cos(a) * sp, vy = Math.sin(a) * sp;
   var dt = 1 / 60;
-  var pts = [];
-  for (var i = 0; i < 34; i++){
+  var pts = [], end = null;
+  var ptx = x + Math.cos(a) * 17, pty = y + Math.sin(a) * 17;
+
+  for (var i = 0; i < 320; i++){
     vx += game.wind * dt;
     vy += G * dt;
     x += vx * dt;
     y += vy * dt;
-    if (y > GROUND || x > W + 40) break;
-    pts.push({ x: x, y: y });
+    var rot = Math.atan2(vy, vx);
+    var tx = x + Math.cos(rot) * 17, ty = y + Math.sin(rot) * 17;
+    var h = sweepHit(ptx, pty, tx, ty);
+    ptx = tx;
+    pty = ty;
+    if (h){
+      end = { x: h.x, y: h.y, kind: h.kind };
+      pts.push({ x: x, y: y });
+      break;
+    }
+    if (y >= GROUND - 2){
+      end = { x: x, y: GROUND - 2, kind: 'ground' };
+      pts.push({ x: x, y: y });
+      break;
+    }
+    if (x > W + 50 || x < -80){
+      end = { x: x, y: y, kind: 'air' };
+      pts.push({ x: x, y: y });
+      break;
+    }
+    if (i % 3 === 0) pts.push({ x: x, y: y });
   }
-  for (var j = 0; j < pts.length; j++){
-    var f = 1 - j / pts.length;
-    ctx.fillStyle = 'rgba(255,220,140,' + (0.55 * f) + ')';
+
+  var n = pts.length;
+  for (var j = 0; j < n; j++){
+    var f = 1 - j / n;
+    ctx.fillStyle = 'rgba(255,226,155,' + (0.20 + 0.62 * f) + ')';
     ctx.beginPath();
-    ctx.arc(pts[j].x, pts[j].y, 2.6 * f + 0.8, 0, 6.2832);
+    ctx.arc(pts[j].x, pts[j].y, 1.1 + 2.7 * f, 0, 6.2832);
     ctx.fill();
   }
+
+  if (!end) return;
+
+  // impact marker — gold for a head, grey for armour, amber for earth
+  var pulse = 0.5 + 0.5 * Math.sin(game.time * 8);
+  var rad = 12 + pulse * 4;
+  ctx.save();
+  if (end.kind === 'head'){
+    ctx.strokeStyle = 'rgba(255,214,96,' + (0.55 + 0.45 * pulse) + ')';
+  } else if (end.kind === 'body'){
+    ctx.strokeStyle = 'rgba(178,196,214,' + (0.35 + 0.3 * pulse) + ')';
+  } else {
+    ctx.strokeStyle = 'rgba(255,170,90,' + (0.26 + 0.2 * pulse) + ')';
+  }
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(end.x, end.y, rad, 0, 6.2832); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(end.x - rad - 7, end.y); ctx.lineTo(end.x - 5, end.y);
+  ctx.moveTo(end.x + 5, end.y); ctx.lineTo(end.x + rad + 7, end.y);
+  ctx.moveTo(end.x, end.y - rad - 7); ctx.lineTo(end.x, end.y - 5);
+  ctx.moveTo(end.x, end.y + 5); ctx.lineTo(end.x, end.y + rad + 7);
+  ctx.stroke();
+
+  if (end.kind === 'head'){
+    ctx.fillStyle = 'rgba(255,230,150,' + (0.45 + 0.5 * pulse) + ')';
+    ctx.beginPath(); ctx.arc(end.x, end.y, 3.4, 0, 6.2832); ctx.fill();
+  } else if (end.kind === 'body'){
+    ctx.strokeStyle = 'rgba(178,196,214,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(end.x - 6, end.y - 6); ctx.lineTo(end.x + 6, end.y + 6);
+    ctx.moveTo(end.x + 6, end.y - 6); ctx.lineTo(end.x - 6, end.y + 6);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /* ============================================================
@@ -1974,6 +2351,7 @@ function draw(){
   drawBuildings();
   drawFire();
   drawGround();
+  drawArmy();
 
   drawRaavan();
   drawStuckArrow();
