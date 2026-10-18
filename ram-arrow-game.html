@@ -62,6 +62,38 @@
     font-family:inherit;-webkit-appearance:none;appearance:none;
   }
   .ico:hover{background:rgba(60,18,0,.75);}
+  /* dodge controls — duck Raavan's arrows, leap his bombs */
+  .dodges{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding:0 2.8vmin 2.6vmin;
+  }
+  .dodges.hide{display:none;}
+  .dodge{
+    pointer-events:auto;cursor:pointer;touch-action:none;
+    width:clamp(52px,10vmin,94px);height:clamp(52px,10vmin,94px);border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    font-family:inherit;font-size:clamp(8.5px,1.55vmin,13px);letter-spacing:.1em;
+    text-transform:uppercase;color:#ffe6b8;
+    background:rgba(28,8,0,.52);border:2px solid rgba(255,190,110,.5);
+    -webkit-appearance:none;appearance:none;-webkit-user-select:none;user-select:none;
+    box-shadow:0 0 18px rgba(255,120,20,.25),inset 0 1px 0 rgba(255,230,190,.2);
+    transition:transform .08s ease,background .08s ease,box-shadow .08s ease,color .08s ease;
+  }
+  .dodge .ar{font-size:clamp(15px,3vmin,26px);line-height:1;}
+  .dodge.on{
+    background:rgba(255,150,40,.88);color:#2b0d00;transform:scale(.92);
+    border-color:#fff0cf;box-shadow:0 0 30px rgba(255,170,40,.95);
+  }
+  /* the fallback view for a phone held upright is cramped — keep the pad small */
+  @media (orientation:portrait){
+    .dodge{
+      width:clamp(42px,7.4vmin,62px);height:clamp(42px,7.4vmin,62px);
+      font-size:clamp(7.5px,1.25vmin,11px);
+    }
+    .dodge .ar{font-size:clamp(13px,2.2vmin,20px);}
+    .dodges{padding:0 2vmin 1.6vmin;}
+  }
   .kbd{display:inline-block;padding:.05em .45em;border:1px solid rgba(255,200,130,.5);
     border-radius:3px;font-size:.92em;color:#ffd79a;}
   #rotate{
@@ -98,6 +130,15 @@
       <button class="ico" id="fs" title="Fullscreen" aria-label="Fullscreen">&#9974;</button>
     </div>
 
+    <div class="dodges hide" id="dodges">
+      <button class="dodge" id="duckBtn" aria-label="Duck under arrows">
+        <span class="ar">&#9660;</span><span>Duck</span>
+      </button>
+      <button class="dodge" id="jumpBtn" aria-label="Jump over bombs">
+        <span class="ar">&#9650;</span><span>Jump</span>
+      </button>
+    </div>
+
     <div class="overlay" id="intro">
       <h1 class="ram deva">श्री राम</h1>
       <h2>Rama's Arrow &middot; Burn Lanka</h2>
@@ -106,11 +147,14 @@
          struck and burned away, while he mocks you from the walls of Lanka.</p>
       <p>Aim at the heads. <b>Hold</b> to draw &mdash; a dotted trail shows exactly where the arrow
          will fly, and your last two shots stay marked in the air. <b>Release</b> to loose.</p>
+      <p class="rules">Raavan fights back! He looses arrows &mdash; <b>duck</b> beneath them &mdash;
+         and hurls bombs &mdash; <b>leap</b> over the blast. Take a hit and you lose an arrow.</p>
       <p class="rules">Twelve arrows. Ten heads. The vanara army of Sugriva roars at your back;
          Raavan's asuras cower behind him.</p>
       <button class="btn" id="startBtn">Draw the Bow</button>
       <p style="opacity:.62;font-size:clamp(9.5px,1.8vmin,14px)" id="ctrlHint">
-        <span class="kbd">SPACE</span> to draw &middot; move the mouse to aim</p>
+        <span class="kbd">SPACE</span> draw &middot; <span class="kbd">&#9660;/S</span> duck &middot;
+        <span class="kbd">&#9650;/W</span> jump &middot; move the mouse to aim</p>
     </div>
 
     <div class="overlay hidden" id="endScreen">
@@ -148,6 +192,14 @@ var RAV = { x: 1010 };             // Raavan centre x
 var STEP = 1 / 60;
 var TOTAL_HEADS = 10;
 var TOTAL_ARROWS = 12;
+
+/* ---------- Ram's dodge & Raavan's counter-attacks ---------- */
+var DUCK_SQUASH = 0.34;      // how much Ram shortens when he ducks
+var JUMP_V = -570;           // initial jump velocity (px/s)
+var JUMP_G = 1620;           // his own, snappier gravity
+var BLAST_H = 62;            // a bomb blast reaches this high; be above it
+var ARROW_LANE = 498;        // Raavan's arrow flies at Ram's standing head height
+var WARN_T = 0.8;            // telegraph time before a shot is loosed
 
 /* ---------- helpers ---------- */
 function rnd(a, b){ return a + Math.random() * (b - a); }
@@ -231,7 +283,22 @@ var Snd = {
     [392, 330, 262, 196].forEach(function(f, i){
       setTimeout(function(){ self.tone(f, 1.0, 'triangle', 0.13); }, i * 200);
     });
-  }
+  },
+  /* ---------- Raavan's counter-attacks ---------- */
+  warnArrow: function(){ this.tone(300, 0.3, 'sawtooth', 0.09, 720); },
+  warnBomb:  function(){ this.noise(0.55, 0.11, 2600, 'highpass', 1200); this.tone(210, 0.5, 'triangle', 0.06, 150); },
+  whoosh:    function(){ this.noise(0.26, 0.14, 900, 'bandpass', 2600); },
+  boom: function(){
+    this.noise(1.0, 0.3, 900, 'lowpass', 90);
+    this.tone(64, 0.9, 'sawtooth', 0.24, 30);
+  },
+  hurt: function(){
+    this.noise(0.34, 0.22, 1400, 'lowpass', 260);
+    this.tone(150, 0.4, 'square', 0.13, 62);
+    this.tone(112, 0.5, 'sawtooth', 0.1, 55);
+  },
+  hop: function(){ this.tone(320, 0.16, 'sine', 0.09, 620); },
+  land: function(){ this.noise(0.16, 0.1, 500, 'lowpass', 160); }
 };
 
 /* ============================================================
@@ -259,7 +326,7 @@ var buildings = (function(){
   return out;
 })();
 
-var flames = [], embers = [], smokes = [], sparks = [], wreck = [], floaters = [];
+var flames = [], embers = [], smokes = [], sparks = [], wreck = [], floaters = [], booms = [];
 
 /* pre-rendered glow sprites: far cheaper than building gradients every frame */
 function glowSprite(stops){
@@ -390,7 +457,27 @@ var game = {
   resolveT: 0,
   resolveDur: 0.9,
   outcome: null,
-  shots: 0
+  shots: 0,
+
+  /* ---- dodging ---- */
+  duck: 0,             // 0 = upright, 1 = fully ducked
+  duckHeld: false,
+  duckT: 0,            // minimum duck time so a quick tap still registers
+  jumpY: 0,            // vertical offset while airborne (negative = up)
+  jumpV: 0,
+  airborne: false,
+  invuln: 0,           // brief mercy window after taking a hit
+  hurtT: 0,
+  quiverFlash: 0,
+
+  /* ---- Raavan's counter-attacks ---- */
+  attack: null,
+  attackTimer: 5,
+  attackCount: 0,
+  lastKind: '',
+  sameKind: 0,
+  cue: null,
+  taught: { arrow: 0, bomb: 0 }
 };
 
 var shotPath = [];      // the flight path of the arrow currently in the air
@@ -457,6 +544,18 @@ var TAUNT_MISS = [
 var TAUNT_DYING = [
   ['मेरे दस सिर! मेरा बल! राम… तू कौन है?!', 'My ten heads! My power! Ram... what are you?!'],
   ['असंभव… मैं अमर हूँ… मैं अमर हूँ…!', 'Impossible... I am immortal... I am immortal...!']
+];
+/* Ram gets hit by one of Raavan's counter-attacks */
+var TAUNT_HIT = [
+  ['हाहा! झुकना सीख, राम! तेरा एक बाण गया!', 'Haha! Learn to duck, Ram — one of your arrows is gone!'],
+  ['मेरा बाण तेरी छाती में! अब गिनती कम हुई!', 'My arrow found your chest — your quiver is lighter!'],
+  ['कूदता रह, वनवासी! मेरा बम चूकता नहीं!', 'Keep jumping, forest dweller — my bombs do not miss!'],
+  ['हर घाव तेरा धनुष भारी कर देगा!', 'Every wound makes your bow heavier, prince!'],
+  ['लंका की आग तुझे भी जलाएगी!', 'The fire of Lanka will take you too!']
+];
+var TAUNT_EMPTY = [
+  ['तेरा तरकश खाली! अब गिनती पूरी हुई, राम!', 'Your quiver is empty! The count is done, Ram!'],
+  ['निःशस्त्र वनवासी! लंका का सिंह तुझे जीवित नहीं छोड़ेगा!', 'Unarmed exile! The lion of Lanka will not let you live!']
 ];
 
 function pick(pool){
@@ -558,10 +657,22 @@ window.addEventListener('keydown', function(e){
     if (game.state === 'aim' && !game.charging){ game.charging = true; game.charge = 0; }
     else if (game.state === 'over') restart();
     else if (game.state === 'intro') startGame();
+    return;
+  }
+  /* dodge Raavan's counter-attacks */
+  if (e.code === 'ArrowDown' || e.code === 'KeyS'){
+    e.preventDefault();
+    Snd.ready();
+    duckOn();
+    return;
+  }
+  if (e.code === 'ArrowUp' || e.code === 'KeyW'){
+    e.preventDefault();
+    Snd.ready();
+    if (!e.repeat) doJump();
+    return;
   }
   if (game.state === 'aim'){
-    if (e.code === 'ArrowUp')    pointer.y = clamp(pointer.y - 26, 90, GROUND);
-    if (e.code === 'ArrowDown')  pointer.y = clamp(pointer.y + 26, 90, GROUND);
     if (e.code === 'ArrowLeft')  pointer.x = clamp(pointer.x - 26, 300, W);
     if (e.code === 'ArrowRight') pointer.x = clamp(pointer.x + 26, 300, W);
   }
@@ -571,7 +682,30 @@ window.addEventListener('keyup', function(e){
     e.preventDefault();
     releaseArrow();
   }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') duckOff();
 });
+
+/* ---------- on-screen dodge buttons (phones) ---------- */
+var dodgesEl = document.getElementById('dodges');
+function holdBtn(el, on, off){
+  var start = function(e){ e.preventDefault(); e.stopPropagation(); Snd.ready(); on(); el.classList.add('on'); };
+  var end = function(e){ if (e){ e.preventDefault(); e.stopPropagation(); } off(); el.classList.remove('on'); };
+  if (window.PointerEvent){
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('pointerleave', end);
+  } else {
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', end);
+    el.addEventListener('mouseleave', end);
+  }
+}
+holdBtn(document.getElementById('duckBtn'), duckOn, duckOff);
+holdBtn(document.getElementById('jumpBtn'), function(){ doJump(); }, function(){});
 
 /* ---------- fullscreen & orientation ---------- */
 function toggleFullscreen(){
@@ -621,8 +755,9 @@ function releaseArrow(){
   game.shots++;
 
   var a = game.aimAngle, sp = arrowSpeed();
-  var x = BOW.x + Math.cos(a) * 34;
-  var y = BOW.y + Math.sin(a) * 34;
+  var bow = bowAnchor();
+  var x = bow.x + Math.cos(a) * 34;
+  var y = bow.y + Math.sin(a) * 34;
   game.arrow = {
     x: x, y: y,
     vx: Math.cos(a) * sp,
@@ -738,6 +873,8 @@ function startBurn(){
   game.burnT = 0;
   game.shake = 30;
   game.flash = 1;
+  clearAttack();
+  game.cue = null;
   armyFlee();
   Snd.roar();
   setTimeout(function(){ Snd.fire(); }, 120);
@@ -747,6 +884,8 @@ function startBurn(){
 function loseGame(){
   game.state = 'over';
   game.outcome = 'lose';
+  clearAttack();
+  game.cue = null;
   Snd.lose();
   setTimeout(showEnd, 1100);
 }
@@ -755,6 +894,7 @@ function nextShot(){
   if (headsLeft() <= 0){ startBurn(); return; }
   if (game.arrows <= 0){ loseGame(); return; }
   game.state = 'aim';
+  game.attackTimer = Math.max(game.attackTimer, 1.4);
   setWind();
 }
 
@@ -787,8 +927,239 @@ function resetGame(){
   game.ghosts = [];
   shotPath = [];
   resetArmy();
+  resetDodge();
   setWind();
   raavanSay(pick(TAUNTS), 4.4);
+}
+
+/* ============================================================
+   Dodging — Ram ducks Raavan's arrows, leaps his bombs.
+   A clean hit costs him one arrow from the quiver.
+   ============================================================ */
+function bowAnchor(){
+  /* Ram's bow rides with his body, so ducking and jumping shift the shot.
+     The aim guide reads this same anchor, so the preview stays exact. */
+  var ds = 1 - DUCK_SQUASH * game.duck;
+  return { x: BOW.x, y: GROUND + game.jumpY + (BOW.y - GROUND) * ds };
+}
+
+/* Raavan can strike at any moment of the fight — while Ram draws, while his
+   arrow flies, while the hit is being savoured. Only the aftermath is safe. */
+function inBattle(){
+  return game.state === 'aim' || game.state === 'fly' || game.state === 'resolve';
+}
+
+function duckOn(){
+  if (!inBattle()) return;
+  game.duckHeld = true;
+  game.duckT = 0.22;               // so a quick tap still ducks
+}
+function duckOff(){ game.duckHeld = false; }
+
+function doJump(){
+  if (!inBattle()) return;
+  if (game.airborne) return;
+  game.airborne = true;
+  game.jumpV = JUMP_V;
+  game.duckHeld = false;           // no ducking in mid-air
+  game.duckT = 0;
+  Snd.hop();
+  for (var i = 0; i < 8; i++) sparks.push(spawnSpark(game.ramX + rnd(-10, 10), GROUND - 5, 120));
+}
+
+/* top of Ram's crown, wherever he is right now */
+function ramTop(){
+  return GROUND + game.jumpY - 176 * (1 - DUCK_SQUASH * game.duck);
+}
+
+function updateDodge(dt){
+  if (game.duckT > 0) game.duckT -= dt;
+  var want = (game.duckHeld || game.duckT > 0) ? 1 : 0;
+  var rate = want ? 11 : 8;
+  game.duck += (want - game.duck) * Math.min(1, dt * rate);
+  if (Math.abs(game.duck - want) < 0.012) game.duck = want;
+
+  if (game.airborne){
+    game.jumpV += JUMP_G * dt;
+    game.jumpY += game.jumpV * dt;
+    if (game.jumpY >= 0){
+      game.jumpY = 0; game.jumpV = 0; game.airborne = false;
+      Snd.land();
+      for (var s = 0; s < 10; s++) sparks.push(spawnSpark(game.ramX + rnd(-16, 16), GROUND - 4, 110));
+    }
+  }
+
+  if (game.invuln > 0) game.invuln -= dt;
+  if (game.hurtT > 0) game.hurtT -= dt;
+  if (game.quiverFlash > 0) game.quiverFlash -= dt;
+  if (game.cue){
+    game.cue.t += dt;
+    if (game.cue.t > game.cue.dur) game.cue = null;
+  }
+}
+
+function resetDodge(){
+  game.duck = 0; game.duckHeld = false; game.duckT = 0;
+  game.jumpY = 0; game.jumpV = 0; game.airborne = false;
+  game.invuln = 0; game.hurtT = 0; game.quiverFlash = 0;
+  game.attack = null;
+  game.attackTimer = 6;
+  game.attackCount = 0;
+  game.lastKind = ''; game.sameKind = 0;
+  game.cue = null;
+  game.taught.arrow = 0; game.taught.bomb = 0;
+  booms.length = 0;
+}
+
+function clearAttack(){ game.attack = null; }
+
+/* ---------- how often Raavan strikes back ---------- */
+function nextAttackGap(){
+  return lerp(6.2, 3.2, raavanRage()) * rnd(0.85, 1.25);
+}
+
+function startAttack(){
+  var kind;
+  if (game.sameKind >= 2){
+    kind = game.lastKind === 'arrow' ? 'bomb' : 'arrow';    // never three in a row
+  } else if (game.lastKind === 'arrow'){
+    kind = Math.random() < 0.55 ? 'bomb' : 'arrow';
+  } else if (game.lastKind === 'bomb'){
+    kind = Math.random() < 0.55 ? 'arrow' : 'bomb';
+  } else {
+    kind = Math.random() < 0.5 ? 'arrow' : 'bomb';
+  }
+  game.sameKind = (kind === game.lastKind) ? game.sameKind + 1 : 1;
+  game.lastKind = kind;
+  game.attackCount++;
+
+  game.attack = {
+    kind: kind, phase: 'warn', t: 0, doneT: 0,
+    x: 0, y: 0, vx: 0, vy: 0, spin: 0, hit: false,
+    landX: game.ramX,
+    wt: kind === 'arrow' ? WARN_T : WARN_T + 0.15
+  };
+  if (kind === 'arrow') Snd.warnArrow(); else Snd.warnBomb();
+
+  /* teach the counter for the first few of each kind, then just a flash */
+  var fresh = game.taught[kind] < 3;
+  if (fresh) game.taught[kind]++;
+  game.cue = { kind: kind, t: 0, dur: fresh ? game.attack.wt + 1.75 : 1.0, strong: fresh };
+}
+
+function boom(x, y){
+  Snd.boom();
+  game.shake = 22;
+  game.flash = 0.42;
+  booms.push({ x: x, y: y, t: 0, life: 0.55 });
+  for (var i = 0; i < 48; i++) sparks.push(spawnSpark(x + rnd(-14, 14), y - rnd(0, 20), rnd(210, 540)));
+  for (var j = 0; j < 16; j++) flames.push(spawnFlame(x + rnd(-26, 26), y - rnd(0, 28), 1.3));
+  for (var k = 0; k < 10; k++) smokes.push(spawnSmoke(x + rnd(-26, 26), y - rnd(10, 46), 1.25));
+  for (var m = 0; m < 12; m++){
+    wreck.push({
+      x: x + rnd(-18, 18), y: y - rnd(0, 22),
+      vx: rnd(-170, 170), vy: -rnd(60, 230), r: rnd(2, 6),
+      life: rnd(0.6, 1.5), age: 0, rot: rnd(0, 6.28), vr: rnd(-6, 6)
+    });
+  }
+}
+
+function updateAttack(dt){
+  var a = game.attack;
+  if (!a) return;
+  a.t += dt;
+
+  if (a.phase === 'warn'){
+    if (a.t >= a.wt){
+      a.phase = 'fly';
+      a.t = 0;
+      if (a.kind === 'arrow'){
+        a.x = RAV.x - 44; a.y = 446;
+        var dx = game.ramX - a.x, dy = ARROW_LANE - a.y;
+        var d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        a.vx = dx / d * 690;
+        a.vy = dy / d * 690;
+      } else {
+        a.x = RAV.x - 46; a.y = 368;
+        a.landX = game.ramX;
+        var tf = 1.35;                       // arc straight onto Ram's head
+        a.vx = (a.landX - a.x) / tf;
+        a.vy = (GROUND - a.y - 450 * tf * tf) / tf;
+      }
+      Snd.whoosh();
+    }
+    return;
+  }
+
+  if (a.phase === 'fly'){
+    if (a.kind === 'arrow'){
+      var prevX = a.x;
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      if (Math.random() < 0.55) sparks.push(spawnSpark(a.x + 12, a.y, 55));
+      /* has it reached Ram's stance? */
+      if (prevX > game.ramX - 26 && a.x <= game.ramX + 26){
+        if (a.y >= ramTop() && a.y <= GROUND + 6){
+          a.phase = 'done';
+          ramHit('arrow', game.ramX + 6);
+          return;
+        }
+      }
+      if (a.x < -70){ a.phase = 'done'; a.doneT = 0; }
+    } else {
+      a.vy += G * dt;
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      a.spin += dt * 3.6;
+      if (Math.random() < 0.9){
+        sparks.push(spawnSpark(a.x, a.y, 40));
+        if (Math.random() < 0.35) smokes.push(spawnSmoke(a.x, a.y, 0.45));
+      }
+      if (a.y >= GROUND - 6 && a.vy > 0){
+        a.y = GROUND - 6;
+        a.phase = 'done';
+        boom(a.x, GROUND - 12);
+        var feet = GROUND + game.jumpY;
+        if (Math.abs(a.x - game.ramX) < 78 && feet > GROUND - BLAST_H){
+          ramHit('bomb', a.x);
+          return;
+        }
+      }
+    }
+    return;
+  }
+
+  if (a.phase === 'done'){
+    a.doneT += dt;
+    if (a.doneT > 0.18){ clearAttack(); game.attackTimer = nextAttackGap(); }
+  }
+}
+
+function ramHit(kind, x){
+  if (game.invuln > 0 || !inBattle()) return;
+  game.invuln = 1.25;
+  game.hurtT = 0.55;
+  game.quiverFlash = 1.0;
+  game.arrows = Math.max(0, game.arrows - 1);
+  game.shake = 17;
+  game.flash = 0.5;
+  Snd.hurt();
+  addFloater(game.ramX + 40, GROUND - 196, '\u2212 1 \u092c\u093e\u0923', '#ff7a4a');
+  for (var i = 0; i < 22; i++){
+    sparks.push(spawnSpark(x, kind === 'bomb' ? GROUND - 26 : ARROW_LANE, 230));
+  }
+  armyAlarm();
+  clearAttack();
+  if (game.arrows <= 0 && headsLeft() > 0){
+    raavanSay(pick(TAUNT_EMPTY), 4.6);
+    loseGame();
+  } else if (game.arrows <= 0){
+    /* every head is already down — nothing can take the victory away now */
+    raavanSay(pick(TAUNT_HIT), 3.0);
+  } else {
+    raavanSay(pick(TAUNT_HIT), 3.8);
+    game.attackTimer = rnd(3.0, 4.6);      // a moment to breathe
+  }
 }
 
 /* ============================================================
@@ -828,6 +1199,14 @@ function armyFlee(){
     var u = army[i];
     if (u.kind === 'vanara'){ u.mode = 'cheer'; u.forever = true; u.mt = Math.random(); }
     else { u.mode = 'flee'; u.facing = 1; u.queue = 0; u.mt = 0; }
+  }
+}
+/* Ram is struck — the asuras roar, the vanaras flinch */
+function armyAlarm(){
+  for (var i = 0; i < army.length; i++){
+    var u = army[i];
+    if (u.kind === 'asura'){ u.queue = Math.random() * 0.4; u.queued = 'cheer'; }
+    else { u.queue = Math.random() * 0.5; u.queued = 'cower'; }
   }
 }
 function resetArmy(){
@@ -880,6 +1259,8 @@ function update(dt){
     if (floaters[fi].age >= floaters[fi].life) floaters.splice(fi, 1);
   }
 
+  updateDodge(dt);
+
   /* Raavan keeps taunting while he still has heads */
   if (headsLeft() > 0 && game.state !== 'intro'){
     if (!game.say){
@@ -928,12 +1309,14 @@ function update(dt){
   stepParticles(smokes, dt, 4, 0.35);
   stepParticles(wreck, dt, 60, 0.4);
   stepParticles(sparks, dt, 220, 0.9);
+  stepBooms(dt);
 
   updateArmy(dt);
 
   // ---- aim / charge ----
   if (game.state === 'aim'){
-    var want = Math.atan2(pointer.y - BOW.y, pointer.x - BOW.x);
+    var ba = bowAnchor();
+    var want = Math.atan2(pointer.y - ba.y, pointer.x - ba.x);
     want = clamp(want, -1.48, 0.42);
     game.aimAngle = lerp(game.aimAngle, want, Math.min(1, dt * 22));
     if (game.charging){
@@ -946,6 +1329,16 @@ function update(dt){
     } else {
       game.power = clamp(game.power - dt * 3, 0.12, 1);
       game.charge = 0;
+    }
+  }
+
+  // ---- Raavan strikes back at any moment of the fight ----
+  if (inBattle()){
+    if (game.attack){
+      updateAttack(dt);
+    } else {
+      game.attackTimer -= dt;
+      if (game.attackTimer <= 0 && game.time > 3 && game.invuln <= 0) startAttack();
     }
   }
 
@@ -1073,6 +1466,30 @@ function stepParticles(arr, dt, grav, drag){
     if (p.grow) p.r += p.grow * dt;
     if (p.rot !== undefined && p.vr) p.rot += p.vr * dt;
     if (p.y > GROUND && !p.petal && arr !== flames){ p.y = GROUND; p.vy *= -0.18; p.vx *= 0.6; }
+  }
+}
+
+/* expanding blast rings from Raavan's bombs */
+function stepBooms(dt){
+  for (var i = booms.length - 1; i >= 0; i--){
+    booms[i].t += dt;
+    if (booms[i].t >= booms[i].life) booms.splice(i, 1);
+  }
+}
+function drawBooms(){
+  for (var i = 0; i < booms.length; i++){
+    var b = booms[i];
+    var k = b.t / b.life;
+    var r = 20 + easeOut(k) * 96;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (1 - k) * 0.85;
+    ctx.drawImage(SPR_HOT, b.x - r * 1.35, b.y - r * 1.35, r * 2.7, r * 2.7);
+    ctx.globalAlpha = (1 - k) * 0.75;
+    ctx.strokeStyle = k < 0.4 ? '#fff2c8' : '#ff7a22';
+    ctx.lineWidth = 9 * (1 - k) + 2;
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, 6.2832); ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -1300,14 +1717,21 @@ function drawRamFace(){
 
 function drawRam(x, ang, drawT, t){
   var bob = Math.sin(t * 2.2) * 1.6;
+  var ds = 1 - DUCK_SQUASH * game.duck;            // ducking shortens him
+  var hurt = clamp(game.hurtT / 0.55, 0, 1);
+  var jolt = hurt > 0 ? Math.sin(hurt * 34) * 7 * hurt : 0;
+
+  /* his shadow stays on the ground, shrinking as he leaps clear of it */
+  var shrink = clamp(1 + game.jumpY / 300, 0.45, 1);
   ctx.save();
-  ctx.translate(x, GROUND + bob);
+  ctx.globalAlpha = 0.35 * shrink;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(x, GROUND, 46 * shrink, 9 * shrink, 0, 0, 6.2832); ctx.fill();
+  ctx.restore();
 
   ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.ellipse(0, 0, 46, 9, 0, 0, 6.2832); ctx.fill();
-  ctx.restore();
+  ctx.translate(x + jolt, GROUND + bob + game.jumpY);
+  ctx.scale(1, ds);
 
   var legs = game.state === 'reunion' ? Math.sin(t * 9) * 8 : 0;
   ctx.strokeStyle = '#2f6ea8';
@@ -1543,12 +1967,14 @@ function drawAsura(u){
   var s = u.s;
   var fleeing = u.mode === 'flee';
   var cower = u.mode === 'cower';
+  var cheering = u.mode === 'cheer';
   var run = fleeing ? Math.abs(Math.sin(u.mt * 13)) : 0;
+  var hop = cheering ? Math.abs(Math.sin(u.mt * 12)) * 8 : 0;
   var bob = Math.sin(game.time * u.spd * 1.5 + u.phase) * 1.5;
   var crouch = cower ? 4 : 0;
 
   ctx.save();
-  ctx.translate(u.x, u.y - run * 5 * s + (bob + crouch) * s);
+  ctx.translate(u.x, u.y - run * 5 * s - hop * s + (bob + crouch) * s);
   ctx.scale(s * u.facing, s);
 
   var SKIN = '#5d1c14', SKIND = '#40110c', ARM = '#7a2a1a', BONE = '#d6c9ac';
@@ -1599,13 +2025,16 @@ function drawAsura(u){
   } else if (cower){
     ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-12, -67); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(12, -67); ctx.stroke();
+  } else if (cheering){
+    ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-16, -70); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(17, -70); ctx.stroke();
   } else {
     ctx.beginPath(); ctx.moveTo(-8, -50); ctx.lineTo(-14, -36); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(8, -50); ctx.lineTo(16, -46); ctx.stroke();
   }
 
   // mace
-  if (!fleeing && !cower){
+  if (u.mode === 'idle'){
     ctx.strokeStyle = '#5a3a1c'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(14, -72); ctx.lineTo(6, -20); ctx.stroke();
     ctx.fillStyle = '#b9c2cc';
@@ -1870,6 +2299,134 @@ function drawRaavan(){
 }
 
 /* ============================================================
+   Raavan's counter-attacks — a loosed arrow, a hurled bomb
+   ============================================================ */
+function drawRaavanArrow(o){
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.rotate(Math.atan2(o.vy, o.vx));
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(SPR_COOL, -36, -20, 72, 40);
+  ctx.restore();
+  ctx.strokeStyle = '#2b1a0e'; ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(14, 0); ctx.stroke();
+  ctx.fillStyle = '#e8e2d6';
+  ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(5, -5); ctx.lineTo(5, 5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ff5a20';
+  ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(11, -5.5); ctx.lineTo(11, 5.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#7d1f12';
+  ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(-11, -7); ctx.lineTo(-14, 0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(-11, 7); ctx.lineTo(-14, 0); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawBomb(o){
+  var k = clamp(o.t / 1.35, 0, 1);
+
+  /* the spot it is falling toward — a bright mark on the ground that
+     tightens as the bomb closes in, so the player knows where to leap */
+  ctx.save();
+  var pulse = 0.5 + 0.5 * Math.sin(game.time * 15);
+  var rr2 = 52 - k * 30, ry2 = 16 - k * 9;
+  ctx.globalAlpha = 0.30 + 0.30 * pulse;
+  ctx.fillStyle = '#ff5a10';
+  ctx.beginPath(); ctx.ellipse(o.landX, GROUND - 2, rr2, ry2, 0, 0, 6.2832); ctx.fill();
+  ctx.globalAlpha = 0.65 + 0.35 * pulse;
+  ctx.strokeStyle = '#ffb057';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.ellipse(o.landX, GROUND - 2, rr2, ry2, 0, 0, 6.2832); ctx.stroke();
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = '#ffd9a0';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(o.landX - 30, GROUND - 2); ctx.lineTo(o.landX - 9, GROUND - 2);
+  ctx.moveTo(o.landX + 9, GROUND - 2); ctx.lineTo(o.landX + 30, GROUND - 2);
+  ctx.moveTo(o.landX, GROUND - 32); ctx.lineTo(o.landX, GROUND - 12);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7;
+  ctx.drawImage(SPR_COOL, -42, -42, 84, 84);
+  ctx.restore();
+  ctx.rotate(o.spin);
+  ctx.fillStyle = '#0f0c0a';
+  ctx.beginPath(); ctx.arc(0, 0, 17, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#4a4036';
+  ctx.beginPath(); ctx.arc(-6, -6, 5.4, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, 17, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = '#c9b58c'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(9, -14); ctx.quadraticCurveTo(24, -26, 14, -36); ctx.stroke();
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(255,232,150,0.95)';
+  ctx.beginPath(); ctx.arc(14, -37, 4.6 + Math.sin(game.time * 46) * 2.1, 0, 6.2832); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawAttacks(){
+  var a = game.attack;
+  if (!a) return;
+  if (a.phase === 'warn'){
+    /* Raavan winds up — a hot glow gathers at his hands */
+    var k = clamp(a.t / a.wt, 0, 1);
+    var gx = a.kind === 'arrow' ? RAV.x - 44 : RAV.x - 46;
+    var gy = a.kind === 'arrow' ? 446 : 368;
+    var r = 18 + k * 42 + Math.sin(game.time * 30) * 5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3 + 0.55 * k;
+    ctx.drawImage(SPR_HOT, gx - r, gy - r, r * 2, r * 2);
+    ctx.restore();
+  } else if (a.phase === 'fly'){
+    if (a.kind === 'arrow') drawRaavanArrow(a);
+    else drawBomb(a);
+  }
+}
+
+/* the prompt that teaches each dodge the first few times */
+function drawCue(){
+  var c = game.cue;
+  if (!c || !game.attack) return;
+  var fade = Math.min(1, c.t / 0.14) *
+             (1 - Math.max(0, (c.t - (c.dur - 0.3)) / 0.3));
+  if (fade <= 0) return;
+
+  var isDuck = c.kind === 'arrow';
+  var label = isDuck ? '\u091d\u0941\u0915\u094b!   DUCK' : '\u0915\u0942\u0926\u094b!   JUMP';
+  var col = isDuck ? '#ffd479' : '#ff9a52';
+  var y = ramTop() - 30 - (c.strong ? Math.abs(Math.sin(game.time * 9)) * 5 : 0);
+
+  ctx.save();
+  ctx.globalAlpha = fade * (c.strong ? 1 : 0.72);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold ' + ((c.strong ? 27 : 21) * hud.s) + "px 'Nirmala UI','Noto Sans Devanagari',Georgia,serif";
+  ctx.lineWidth = 4.5;
+  ctx.strokeStyle = 'rgba(18,4,0,0.88)';
+  ctx.strokeText(label, game.ramX, y);
+  ctx.fillStyle = col;
+  ctx.shadowColor = 'rgba(255,120,0,0.9)';
+  ctx.shadowBlur = 16;
+  ctx.fillText(label, game.ramX, y);
+  if (c.strong){
+    ctx.shadowBlur = 0;
+    ctx.font = (13.5 * hud.s) + 'px Georgia, serif';
+    ctx.fillStyle = 'rgba(255,228,186,0.92)';
+    ctx.fillText(isDuck ? 'duck under his arrow  ·  Arrow Down / S'
+                        : 'leap over the blast  ·  Arrow Up / W',
+                 Math.max(250, Math.min(W - 250, game.ramX)), y + 21 * hud.s);
+  }
+  ctx.restore();
+}
+
+/* ============================================================
    Arrows & aim guide
    ============================================================ */
 function drawFlyingArrow(){
@@ -1941,7 +2498,8 @@ function drawAimGuide(){
 
   // full predicted flight — exactly the same maths the arrow will use
   var a = game.aimAngle, sp = arrowSpeed();
-  var x = BOW.x + Math.cos(a) * 34, y = BOW.y + Math.sin(a) * 34;
+  var bw = bowAnchor();
+  var x = bw.x + Math.cos(a) * 34, y = bw.y + Math.sin(a) * 34;
   var vx = Math.cos(a) * sp, vy = Math.sin(a) * sp;
   var dt = 1 / 60;
   var pts = [], end = null;
@@ -2115,9 +2673,20 @@ function drawHUD(){
   }
 
   // arrows remaining
+  var qf = Math.max(0, game.quiverFlash);
+  if (qf > 0){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    var qr = 26 + (1 - qf) * 24;
+    ctx.globalAlpha = 0.55 * qf;
+    ctx.drawImage(SPR_HOT, 36 - qr, 62 - qr, qr * 2, qr * 2);
+    ctx.restore();
+  }
   drawQuiverIcon(34, 62, game.arrows > 0);
   ctx.font = 'bold 23px Georgia, serif';
-  if (game.arrows <= 2 && game.arrows > 0){
+  if (qf > 0){
+    ctx.fillStyle = '#ffd9c0';
+  } else if (game.arrows <= 2 && game.arrows > 0){
     var pu = 0.6 + 0.4 * Math.sin(game.time * 7);
     ctx.fillStyle = 'rgba(255,' + Math.floor(90 + 120 * pu) + ',60,1)';
   } else {
@@ -2361,6 +2930,9 @@ function draw(){
   var drawT = game.state === 'aim' ? game.power : 0;
   drawRam(game.ramX, ang, drawT, game.time);
 
+  drawAttacks();
+  drawBooms();
+
   if (game.sitaVisible && (game.state === 'reunion' || game.state === 'over')){
     drawSita(game.sitaX, game.time);
   }
@@ -2368,6 +2940,7 @@ function draw(){
   drawFlyingArrow();
   drawAimGuide();
   drawFloaters();
+  drawCue();
 
   var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.05);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -2384,6 +2957,12 @@ function draw(){
 
   drawHUD();
   drawDialogue();
+
+  /* the dodge pad only exists while the bow is actually in play */
+  var inPlay = game.state === 'aim' || game.state === 'fly' || game.state === 'resolve';
+  if (dodgesEl.classList.contains('hide') === inPlay){
+    dodgesEl.classList.toggle('hide', !inPlay);
+  }
 }
 
 /* ============================================================
