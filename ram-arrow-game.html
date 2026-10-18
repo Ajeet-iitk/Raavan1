@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Shri Ram's Arrow — Burn Lanka (Ramayana)</title>
+<style>
+  html,body{
+    margin:0;height:100%;background:#05030a;overflow:hidden;overscroll-behavior:none;
+    font-family:Georgia,'Times New Roman',serif;color:#f6e3bf;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  #stage{
+    position:fixed;inset:0;display:grid;place-items:center;box-sizing:border-box;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #frame{
+    position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;max-height:100dvh;
+    border-radius:10px;overflow:hidden;
+    box-shadow:0 0 70px rgba(255,110,10,.28),0 0 140px rgba(255,60,0,.12);
+  }
+  canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;}
+  .overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    gap:.3em;padding:3.5vmin 5vmin;box-sizing:border-box;overflow-y:auto;
+    background:radial-gradient(ellipse at 50% 45%,rgba(40,8,0,.74),rgba(5,3,10,.95));
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    transition:opacity .4s ease;
+  }
+  .overlay.hidden{opacity:0;pointer-events:none;}
+  .deva{font-family:'Nirmala UI','Noto Sans Devanagari','Mangal',serif;}
+  h1{margin:0;font-size:clamp(21px,7vmin,60px);letter-spacing:.06em;color:#ffd479;
+    text-shadow:0 0 18px rgba(255,150,30,.85),0 0 44px rgba(255,60,0,.5);}
+  h1.ram{font-size:clamp(25px,8.6vmin,74px);color:#ffe9a8;}
+  h2{margin:.1em 0 0;font-size:clamp(10px,2.4vmin,24px);letter-spacing:.28em;
+    text-transform:uppercase;color:#ffb463;font-weight:400;}
+  p{margin:.3em 0;max-width:46em;font-size:clamp(10.5px,2.05vmin,17px);
+    line-height:1.6;color:#e8cfa8;opacity:.94;}
+  .rules{color:#ffcf8a;}
+  .btn{
+    margin-top:.75em;padding:.72em 1.8em;min-height:44px;
+    font-size:clamp(11.5px,2.2vmin,18px);
+    font-family:inherit;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+    color:#2b0d00;background:linear-gradient(#ffdf9a,#ffa42a);
+    border:1px solid #ffeec2;border-radius:4px;
+    box-shadow:0 0 22px rgba(255,150,20,.5),inset 0 1px 0 #fff6dd;
+    transition:transform .15s ease,box-shadow .15s ease;
+    -webkit-appearance:none;appearance:none;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 0 34px rgba(255,170,40,.8);}
+  .btn:active{transform:translateY(0) scale(.98);}
+  .ctrls{position:absolute;top:8px;right:9px;z-index:6;display:flex;gap:6px;}
+  .ico{
+    cursor:pointer;background:rgba(20,6,0,.55);
+    border:1px solid rgba(255,190,110,.45);color:#ffd79a;border-radius:4px;
+    font-size:16px;line-height:1;padding:8px 10px;min-width:38px;min-height:38px;
+    font-family:inherit;-webkit-appearance:none;appearance:none;
+  }
+  .ico:hover{background:rgba(60,18,0,.75);}
+  .kbd{display:inline-block;padding:.05em .45em;border:1px solid rgba(255,200,130,.5);
+    border-radius:3px;font-size:.92em;color:#ffd79a;}
+  #rotate{
+    position:fixed;inset:0;z-index:20;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:1em;text-align:center;
+    padding:8vw;box-sizing:border-box;background:rgba(5,3,10,.97);color:#ffd79a;
+  }
+  #rotate.show{display:flex;}
+  #rotate .phone{width:64px;height:110px;border:3px solid #ffd79a;border-radius:11px;
+    animation:turn 2s ease-in-out infinite;position:relative;}
+  #rotate .phone::after{content:'';position:absolute;left:50%;bottom:6px;width:16px;height:3px;
+    margin-left:-8px;background:#ffd79a;border-radius:2px;}
+  @keyframes turn{0%,40%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+  #rotate h3{margin:0;font-size:clamp(16px,4.6vmin,30px);letter-spacing:.08em;}
+  #rotate p{font-size:clamp(11px,2.6vmin,16px);opacity:.8;}
+  @media (max-height:430px){
+    .overlay{gap:.15em;padding:2.2vmin 4vmin;}
+    p{line-height:1.42;}
+    .btn{margin-top:.5em;padding:.55em 1.5em;}
+    h1{font-size:clamp(19px,6.4vmin,42px);}
+    h1.ram{font-size:clamp(22px,8vmin,52px);}
+    #rotate{gap:.5em;}
+    #rotate .phone{width:44px;height:76px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="frame">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <div class="ctrls">
+      <button class="ico" id="mute" title="Sound on/off" aria-label="Sound">&#128266;</button>
+      <button class="ico" id="fs" title="Fullscreen" aria-label="Fullscreen">&#9974;</button>
+    </div>
+
+    <div class="overlay" id="intro">
+      <h1 class="ram deva">श्री राम</h1>
+      <h2>Rama's Arrow &middot; Burn Lanka</h2>
+      <p class="rules">Yuddha Kanda &mdash; The Ten Heads of Raavan</p>
+      <p>Raavan has <b>ten heads</b>. A single arrow cannot fell him &mdash; every head must be
+         struck and burned away. He will mock you while you draw.</p>
+      <p>Aim at the heads. <b>Hold</b> to draw the bow, <b>release</b> to loose the arrow.
+         Wind drifts your shot &mdash; watch the banner and the aim trail.</p>
+      <p class="rules">Twelve arrows. Ten heads. When the last head falls, Lanka burns and Sita is free.</p>
+      <button class="btn" id="startBtn">Draw the Bow</button>
+      <p style="opacity:.62;font-size:clamp(9.5px,1.8vmin,14px)" id="ctrlHint">
+        <span class="kbd">SPACE</span> to draw &middot; move the mouse to aim</p>
+    </div>
+
+    <div class="overlay hidden" id="endScreen">
+      <h1 id="endTitle"></h1>
+      <h2 id="endSub"></h2>
+      <p id="endText"></p>
+      <button class="btn" id="againBtn">Shoot Again</button>
+    </div>
+  </div>
+</div>
+
+<div id="rotate">
+  <div class="phone"></div>
+  <h3>Turn your device sideways</h3>
+  <p>Ram's bow needs the wide horizon of Lanka.</p>
+  <button class="btn" id="anywayBtn" style="margin-top:.4em">Play anyway</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   Shri Ram's Arrow — a Ramayana archery game
+   Raavan has ten heads. Fell them all and Lanka burns.
+   ============================================================ */
+
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d');
+var W = canvas.width, H = canvas.height;
+var GROUND = 642;
+var G = 900;                       // gravity px/s^2
+var BOW = { x: 258, y: 400 };      // bow hand anchor
+var RAV = { x: 1010 };             // Raavan centre x
+var STEP = 1 / 60;
+var TOTAL_HEADS = 10;
+var TOTAL_ARROWS = 12;
+
+/* ---------- helpers ---------- */
+function rnd(a, b){ return a + Math.random() * (b - a); }
+function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t){ return a + (b - a) * t; }
+function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t){ return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var isTouch = ('ontouchstart' in window) ||
+              (window.matchMedia && window.matchMedia('(hover: none)').matches);
+
+/* ---------- audio ---------- */
+var Snd = {
+  ac: null,
+  muted: false,
+  ready: function(){
+    if (!this.ac){
+      try { this.ac = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { this.ac = null; }
+    }
+    if (this.ac && this.ac.state === 'suspended') this.ac.resume();
+  },
+  tone: function(freq, dur, type, vol, slideTo){
+    if (!this.ac || this.muted) return;
+    var c = this.ac, o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, c.currentTime);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), c.currentTime + dur);
+    g.gain.setValueAtTime(0.0001, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, c.currentTime + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + dur + 0.03);
+  },
+  noise: function(dur, vol, filterFreq, type, slideTo){
+    if (!this.ac || this.muted) return;
+    var c = this.ac, len = Math.max(1, Math.floor(c.sampleRate * dur));
+    var buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = c.createBufferSource(); src.buffer = buf;
+    var f = c.createBiquadFilter(); f.type = type || 'lowpass';
+    f.frequency.setValueAtTime(filterFreq || 900, c.currentTime);
+    if (slideTo) f.frequency.exponentialRampToValueAtTime(Math.max(60, slideTo), c.currentTime + dur);
+    var g = c.createGain();
+    g.gain.setValueAtTime(vol || 0.2, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    src.connect(f); f.connect(g); g.connect(c.destination);
+    src.start();
+  },
+  draw: function(p){ this.tone(120 + p * 90, 0.28, 'sawtooth', 0.03 + p * 0.03, 240 + p * 200); },
+  release: function(){ this.tone(880, 0.16, 'triangle', 0.16, 260); this.noise(0.12, 0.16, 2600, 'highpass', 700); },
+  headHit: function(){
+    this.noise(0.5, 0.24, 1800, 'lowpass', 260);
+    this.tone(180, 0.3, 'square', 0.1, 70);
+  },
+  clang: function(){
+    this.tone(1500, 0.28, 'square', 0.07, 700);
+    this.noise(0.22, 0.13, 3000, 'highpass', 900);
+  },
+  fire: function(){ this.noise(0.9, 0.22, 1500, 'lowpass', 300); this.noise(1.4, 0.12, 400, 'lowpass', 120); },
+  roar: function(){
+    this.tone(90, 1.5, 'sawtooth', 0.22, 42);
+    this.tone(133, 1.4, 'square', 0.08, 60);
+    this.noise(1.6, 0.24, 700, 'lowpass', 140);
+  },
+  chime: function(){
+    var self = this;
+    [523, 659, 784, 1046].forEach(function(f, i){
+      setTimeout(function(){ self.tone(f, 1.1, 'sine', 0.13); }, i * 170);
+    });
+  },
+  lose: function(){
+    var self = this;
+    [392, 330, 262, 196].forEach(function(f, i){
+      setTimeout(function(){ self.tone(f, 1.0, 'triangle', 0.13); }, i * 200);
+    });
+  }
+};
+
+/* ============================================================
+   Background — Lanka burning
+   ============================================================ */
+var buildings = (function(){
+  var out = [];
+  function layer(seed, yBase, minH, maxH, color, alpha){
+    var r = mulberry32(seed), x = -60;
+    while (x < W + 60){
+      var w = 34 + r() * 84;
+      var h = minH + r() * (maxH - minH);
+      var type = r() < 0.42 ? 'dome' : (r() < 0.55 ? 'spire' : 'flat');
+      var b = { x: x, w: w, h: h, type: type, yBase: yBase, color: color, alpha: alpha, win: [] };
+      var n = Math.floor(h / 26);
+      for (var i = 0; i < n; i++){
+        if (r() < 0.55) b.win.push({ x: x + 7 + r() * (w - 18), y: yBase - h + 9 + i * 24, s: 5 + r() * 5 });
+      }
+      out.push(b);
+      x += w + r() * 26 + 8;
+    }
+  }
+  layer(1337, GROUND - 118, 46, 132, '#2a1114', 0.80);
+  layer(90210, GROUND - 12, 72, 214, '#150a0d', 0.96);
+  return out;
+})();
+
+var flames = [], embers = [], smokes = [], sparks = [], wreck = [], floaters = [];
+
+/* pre-rendered glow sprites: far cheaper than building gradients every frame */
+function glowSprite(stops){
+  var c = document.createElement('canvas');
+  c.width = c.height = 64;
+  var g = c.getContext('2d');
+  var grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (var i = 0; i < stops.length; i++) grd.addColorStop(stops[i][0], stops[i][1]);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  return c;
+}
+var SPR_HOT = glowSprite([[0, 'rgba(255,246,205,1)'], [0.22, 'rgba(255,208,96,0.88)'],
+                          [0.55, 'rgba(255,112,22,0.5)'], [1, 'rgba(190,22,0,0)']]);
+var SPR_COOL = glowSprite([[0, 'rgba(255,226,178,0.95)'], [0.3, 'rgba(255,152,52,0.7)'],
+                           [0.66, 'rgba(214,58,0,0.38)'], [1, 'rgba(140,10,0,0)']]);
+var SPR_SPARK = glowSprite([[0, 'rgba(255,250,225,1)'], [0.4, 'rgba(255,190,90,0.6)'],
+                            [1, 'rgba(255,120,20,0)']]);
+
+function spawnFlame(x, y, scale){
+  var s = scale || 1;
+  return { x: x, y: y, vx: rnd(-22, 22), vy: -rnd(55, 165) * s,
+           r: rnd(7, 19) * s, grow: rnd(14, 34) * s,
+           life: rnd(0.55, 1.5), age: 0, hue: rnd(8, 44) };
+}
+function spawnEmber(x, y, s){
+  s = s || 1;
+  return { x: x, y: y, vx: rnd(-36, 36), vy: -rnd(70, 210) * s,
+           r: rnd(1, 2.7) * s, life: rnd(1.1, 2.6), age: 0 };
+}
+function spawnSmoke(x, y, s){
+  s = s || 1;
+  return { x: x, y: y, vx: rnd(-26, 26), vy: -rnd(28, 74) * s,
+           r: rnd(26, 62) * s, life: rnd(2.4, 5.2), age: 0, rot: rnd(0, 6.28) };
+}
+function spawnSpark(x, y, spd){
+  var a = rnd(0, Math.PI * 2), v = rnd(60, spd || 420);
+  return { x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - rnd(0, 120),
+           life: rnd(0.4, 1.3), age: 0, hue: rnd(12, 50), r: rnd(1.4, 3.6) };
+}
+function addFloater(x, y, text, color){
+  floaters.push({ x: x, y: y, text: text, color: color || '#ffd479', age: 0, life: 1.5 });
+}
+
+/* Raavan's ten heads — bottom row first, then upward */
+var RAVAN_HEADS = (function(){
+  var rows = [{ n: 4, y: 396 }, { n: 3, y: 352 }, { n: 2, y: 308 }, { n: 1, y: 264 }];
+  var out = [], k = 0;
+  for (var r = 0; r < rows.length; r++){
+    for (var i = 0; i < rows[r].n; i++){
+      out.push({
+        x: RAV.x + (i - (rows[r].n - 1) / 2) * 46,
+        y: rows[r].y, r: 22, alive: true, phase: k * 1.7, idx: k
+      });
+      k++;
+    }
+  }
+  return out;
+})();
+
+var TORSO = [
+  { x: RAV.x, y: 456, r: 90 },
+  { x: RAV.x, y: 545, r: 82 },
+  { x: RAV.x, y: 620, r: 72 }
+];
+
+function headsLeft(){
+  var n = 0;
+  for (var i = 0; i < RAVAN_HEADS.length; i++) if (RAVAN_HEADS[i].alive) n++;
+  return n;
+}
+function raavanRage(){ return (TOTAL_HEADS - headsLeft()) / TOTAL_HEADS; }
+
+function seedBackground(){
+  for (var i = 0; i < 130; i++){
+    var b = buildings[(i * 7) % buildings.length];
+    flames.push(spawnFlame(b.x + Math.random() * b.w, b.yBase + 4, b.yBase > GROUND - 60 ? 1 : 0.7));
+  }
+  for (var j = 0; j < 60; j++){
+    var b2 = buildings[(j * 11) % buildings.length];
+    embers.push(spawnEmber(b2.x + Math.random() * b2.w, b2.yBase, 1));
+  }
+  for (var k = 0; k < 26; k++){
+    var b3 = buildings[(k * 13) % buildings.length];
+    smokes.push(spawnSmoke(b3.x + Math.random() * b3.w, b3.yBase - 30, 1));
+  }
+}
+
+/* ============================================================
+   Game state
+   ============================================================ */
+var game = {
+  state: 'intro',       // intro | aim | fly | resolve | burn | reunion | over
+  time: 0,
+  arrows: TOTAL_ARROWS,
+  charging: false,
+  charge: 0,
+  aimAngle: -0.35,
+  power: 0,
+  wind: 0,
+  shake: 0,
+  burnT: 0,
+  reunionT: 0,
+  flash: 0,
+  ramX: 178,
+  sitaX: 1230,
+  sitaVisible: false,
+  celebrate: false,
+  stuck: null,
+  stuckGround: null,
+  toast: null,
+  say: null,
+  tauntTimer: 3,
+  recent: [],
+  arrow: null,
+  resolveKind: 'miss',
+  resolveT: 0,
+  resolveDur: 0.9,
+  outcome: null,
+  shots: 0
+};
+
+/* HUD is drawn in a virtual space where 1 unit = 1 CSS pixel, so text
+   stays legible on a phone the size of a matchbox. */
+var hud = { s: 1, vw: W, vh: H, compact: false };
+function layout(){
+  var cw = canvas.clientWidth || W;
+  hud.s = clamp(W / cw, 1, 2.6);
+  hud.vw = W / hud.s;
+  hud.vh = H / hud.s;
+  hud.compact = hud.vw < 1000;
+}
+
+function setWind(){
+  game.wind = rnd(-1, 1) * 46;
+  if (Math.abs(game.wind) < 12) game.wind = 0;
+}
+
+function showToast(main, sub, dur){
+  game.toast = { main: main, sub: sub || '', t: 0, dur: dur || 2.2 };
+}
+
+/* ---------- Raavan's tongue ---------- */
+var TAUNTS = [
+  ['दस सिर हैं मेरे! एक काटेगा तो नौ और हँसेंगे!', 'Ten heads, prince! Cut one and nine more will laugh at you.'],
+  ['तू वनवासी है, राम! लंका तेरे लिए स्वर्ग है!', 'You are a forest exile, Ram — Lanka is a heaven you may never enter.'],
+  ['तेरे बाण मेरे कवच पर फूलों से गिरते हैं!', 'Your arrows fall on my armour like petals.'],
+  ['सीता अब मेरी है! तू अपनी जान बचा, तपस्वी!', 'Sita is mine now. Save your own life, hermit!'],
+  ['ब्रह्मा का वरदान मेरे पास है — मृत्यु मुझे छू नहीं सकती!', 'Brahma has blessed me — death cannot touch Ravana.'],
+  ['तेरी धनुर्विद्या बालकों का खेल है!', 'Your archery is a child\'s game.'],
+  ['लंका के वायु भी मेरी आज्ञा मानते हैं!', 'Even the winds of Lanka obey my command.'],
+  ['जंगल में भटकते राजकुमार, मुझसे क्या लड़ेगा?', 'A wandering prince from the forest dares to fight me?']
+];
+var TAUNT_HURT = [
+  ['हा! एक सिर! नौ और बाकी हैं, मूर्ख!', 'One head! Nine remain, fool!'],
+  ['आह! तूने मेरा मुकुट काला कर दिया!', 'Aah! You have blackened my crown!'],
+  ['यह बाण तेरा अंतिम होगा, राम!', 'That arrow will be your last, Ram!'],
+  ['हर घाव मुझे और बलवान बनाता है!', 'Every wound you give me only makes me stronger!']
+];
+var TAUNT_HURT_MID = [
+  ['मेरा बल… क्यों क्षीण हो रहा है?', 'My strength... why does it fail me?'],
+  ['तू कोई साधारण मनुष्य नहीं है!', 'You are no ordinary man!'],
+  ['रुक! मैं तुझे जीवित नहीं छोड़ूँगा!', 'Stop! I will not let you leave here alive!'],
+  ['दशानन हारता नहीं! कभी नहीं!', 'Dashanan does not lose. Never!']
+];
+var TAUNT_HURT_LATE = [
+  ['रुक जा! रुक जा, राम!', 'Stop! Stop, Ram!'],
+  ['मेरे सिर! मेरा राज्य! सब जल रहा है!', 'My heads! My kingdom! All of it burns!'],
+  ['तू देवता है या मनुष्य?!', 'Are you a god, or a man?!']
+];
+var TAUNT_BLOCK = [
+  ['हाहा! तेरा बाण व्यर्थ गया!', 'Hahaha! Your arrow was wasted!'],
+  ['मेरा कवच देवताओं ने बनाया है!', 'My armour was forged by the gods themselves!'],
+  ['अंधे हो गए हो, राम? सिर ऊपर हैं!', 'Have you gone blind, Ram? The heads are higher!'],
+  ['लोहे पर लोहा — और तेरा बाण टूट गया!', 'Iron upon iron — and your arrow breaks!']
+];
+var TAUNT_MISS = [
+  ['लंका की धरती भी मेरी है!', 'Even the soil of Lanka is mine!'],
+  ['व्यर्थ! तेरे तीर आकाश में खो गए!', 'Wasted! Your arrows are lost in the sky!'],
+  ['हाहा! कितने बाण बचे हैं, राम?', 'Hahaha! How many arrows do you have left, Ram?'],
+  ['अब तेरा धनुष भी जल जाएगा!', 'Soon your bow will burn along with you!']
+];
+var TAUNT_DYING = [
+  ['मेरे दस सिर! मेरा बल! राम… तू कौन है?!', 'My ten heads! My power! Ram... what are you?!'],
+  ['असंभव… मैं अमर हूँ… मैं अमर हूँ…!', 'Impossible... I am immortal... I am immortal...!']
+];
+
+function pick(pool){
+  if (!pool || !pool.length) return ['', ''];
+  for (var tries = 0; tries < 10; tries++){
+    var c = pool[(Math.random() * pool.length) | 0];
+    if (game.recent.indexOf(c[0]) < 0) return c;
+  }
+  return pool[(Math.random() * pool.length) | 0];
+}
+function raavanSay(line, dur){
+  if (!line || !line[0]) return;
+  game.say = { hi: line[0], en: line[1], t: 0, dur: dur || 4.6 };
+  game.recent.push(line[0]);
+  if (game.recent.length > 3) game.recent.shift();
+  game.tauntTimer = 3.5;
+}
+function hurtLine(){
+  var n = TOTAL_HEADS - headsLeft();
+  if (n >= 8) return pick(TAUNT_HURT_LATE);
+  if (n >= 5) return pick(TAUNT_HURT_MID);
+  return pick(TAUNT_HURT);
+}
+
+/* ============================================================
+   Input — pointer, touch and keyboard
+   ============================================================ */
+var pointer = { x: 700, y: 300, down: false };
+
+function toCanvas(x, y){
+  var r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return { x: 0, y: 0 };
+  return { x: (x - r.left) * (W / r.width), y: (y - r.top) * (H / r.height) };
+}
+function inputDown(x, y){
+  Snd.ready();
+  pointer.x = x; pointer.y = y; pointer.down = true;
+  if (game.state === 'aim' && !game.charging){
+    game.charging = true;
+    game.charge = 0;
+  }
+}
+function inputMove(x, y){
+  pointer.x = x; pointer.y = y;
+}
+function inputUp(){
+  pointer.down = false;
+  if (game.state === 'aim' && game.charging) releaseArrow();
+}
+
+if (window.PointerEvent){
+  canvas.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    var p = toCanvas(e.clientX, e.clientY);
+    inputDown(p.x, p.y);
+  });
+  canvas.addEventListener('pointermove', function(e){
+    var p = toCanvas(e.clientX, e.clientY);
+    inputMove(p.x, p.y);
+  });
+  canvas.addEventListener('pointerup', function(e){ e.preventDefault(); inputUp(); });
+  canvas.addEventListener('pointercancel', function(){ pointer.down = false; game.charging = false; });
+  canvas.addEventListener('pointerleave', function(e){ if (pointer.down) inputMove(pointer.x, pointer.y); });
+} else {
+  function tpos(t){ return toCanvas(t.clientX, t.clientY); }
+  canvas.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    var p = tpos(e.touches[0]);
+    inputDown(p.x, p.y);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    var p = tpos(e.touches[0]);
+    inputMove(p.x, p.y);
+  }, { passive: false });
+  canvas.addEventListener('touchend', function(e){ e.preventDefault(); inputUp(); }, { passive: false });
+  canvas.addEventListener('touchcancel', function(){ pointer.down = false; game.charging = false; });
+  canvas.addEventListener('mousedown', function(e){
+    var p = toCanvas(e.clientX, e.clientY);
+    inputDown(p.x, p.y);
+  });
+  canvas.addEventListener('mousemove', function(e){
+    var p = toCanvas(e.clientX, e.clientY);
+    inputMove(p.x, p.y);
+  });
+  window.addEventListener('mouseup', function(){ inputUp(); });
+}
+canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('touchmove', function(e){
+  if (e.target === canvas) e.preventDefault();
+}, { passive: false });
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+
+window.addEventListener('keydown', function(e){
+  if (e.code === 'Space'){
+    e.preventDefault();
+    Snd.ready();
+    if (game.state === 'aim' && !game.charging){ game.charging = true; game.charge = 0; }
+    else if (game.state === 'over') restart();
+    else if (game.state === 'intro') startGame();
+  }
+  if (game.state === 'aim'){
+    if (e.code === 'ArrowUp')    pointer.y = clamp(pointer.y - 26, 90, GROUND);
+    if (e.code === 'ArrowDown')  pointer.y = clamp(pointer.y + 26, 90, GROUND);
+    if (e.code === 'ArrowLeft')  pointer.x = clamp(pointer.x - 26, 300, W);
+    if (e.code === 'ArrowRight') pointer.x = clamp(pointer.x + 26, 300, W);
+  }
+});
+window.addEventListener('keyup', function(e){
+  if (e.code === 'Space' && game.state === 'aim' && game.charging){
+    e.preventDefault();
+    releaseArrow();
+  }
+});
+
+/* ---------- fullscreen & orientation ---------- */
+function toggleFullscreen(){
+  var d = document, el = d.documentElement;
+  var on = d.fullscreenElement || d.webkitFullscreenElement;
+  try {
+    if (!on){
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+      if (d.exitFullscreen) d.exitFullscreen();
+      else if (d.webkitExitFullscreen) d.webkitExitFullscreen();
+    }
+  } catch (e) {}
+}
+var rotateEl = document.getElementById('rotate');
+var rotateDismissed = false;
+function checkOrientation(){
+  var portrait = window.innerHeight > window.innerWidth;
+  var small = Math.min(window.innerWidth, window.innerHeight) < 600;
+  if (portrait && small && !rotateDismissed) rotateEl.classList.add('show');
+  else rotateEl.classList.remove('show');
+}
+document.getElementById('anywayBtn').addEventListener('click', function(){
+  rotateDismissed = true;
+  rotateEl.classList.remove('show');
+});
+document.getElementById('fs').addEventListener('click', function(){
+  toggleFullscreen();
+  this.blur();
+});
+window.addEventListener('resize', function(){ layout(); checkOrientation(); });
+window.addEventListener('orientationchange', function(){
+  setTimeout(function(){ layout(); checkOrientation(); }, 250);
+});
+
+/* ============================================================
+   Shooting
+   ============================================================ */
+function arrowSpeed(){ return 900 + game.power * 600; }
+
+function releaseArrow(){
+  if (game.arrows <= 0 || game.state !== 'aim') return;
+  game.charging = false;
+  game.charge = 0;
+  game.arrows--;
+  game.shots++;
+
+  var a = game.aimAngle, sp = arrowSpeed();
+  var x = BOW.x + Math.cos(a) * 34;
+  var y = BOW.y + Math.sin(a) * 34;
+  game.arrow = {
+    x: x, y: y,
+    vx: Math.cos(a) * sp,
+    vy: Math.sin(a) * sp,
+    rot: a,
+    trail: [],
+    age: 0
+  };
+  game.stuckGround = null;
+  game.state = 'fly';
+  game.power = 0;
+  Snd.release();
+  for (var i = 0; i < 14; i++) sparks.push(spawnSpark(x, y, 160));
+}
+
+function hitTest(px, py){
+  for (var i = 0; i < RAVAN_HEADS.length; i++){
+    var h = RAVAN_HEADS[i];
+    if (!h.alive) continue;
+    var dx = px - h.x, dy = py - h.y;
+    if (dx * dx + dy * dy < (h.r + 3) * (h.r + 3)) return { kind: 'head', head: h };
+  }
+  for (var j = 0; j < TORSO.length; j++){
+    var ex = px - TORSO[j].x, ey = py - TORSO[j].y;
+    if (ex * ex + ey * ey < TORSO[j].r * TORSO[j].r) return { kind: 'body' };
+  }
+  return null;
+}
+
+/* ---------- resolutions ---------- */
+function beginResolve(kind, dur){
+  game.resolveKind = kind;
+  game.resolveT = 0;
+  game.resolveDur = dur;
+  game.state = 'resolve';
+}
+
+function headDown(h){
+  var a = game.arrow;
+  h.alive = false;
+  game.stuck = { x: h.x, y: h.y, rot: a.rot, t: 0 };
+  game.arrow = null;
+
+  for (var i = 0; i < 60; i++) sparks.push(spawnSpark(h.x, h.y, 520));
+  for (var j = 0; j < 34; j++) flames.push(spawnFlame(h.x + rnd(-24, 24), h.y + rnd(-24, 24), 1.4));
+  for (var k = 0; k < 14; k++) embers.push(spawnEmber(h.x + rnd(-30, 30), h.y + rnd(-30, 30), 1.4));
+  for (var s = 0; s < 5; s++) smokes.push(spawnSmoke(h.x, h.y, 0.9));
+
+  game.shake = 15;
+  game.flash = 0.7;
+  Snd.headHit();
+  setTimeout(function(){ Snd.fire(); }, 90);
+
+  var down = TOTAL_HEADS - headsLeft();
+  addFloater(h.x, h.y - 44, 'HEAD ' + down + ' / ' + TOTAL_HEADS, '#ffc75a');
+
+  if (headsLeft() <= 0){
+    raavanSay(pick(TAUNT_DYING), 4.2);
+    showToast('दसों सिर गिरे', 'All ten heads destroyed!', 2.4);
+    beginResolve('head', 2.1);
+  } else {
+    raavanSay(hurtLine(), 4.0);
+    beginResolve('head', 1.15);
+  }
+}
+
+function bodyBlocked(hp){
+  var a = game.arrow;
+  game.stuck = { x: hp.x, y: hp.y, rot: a.rot, t: 0, armour: true };
+  game.arrow = null;
+  for (var i = 0; i < 22; i++) sparks.push(spawnSpark(hp.x, hp.y, 200));
+  addFloater(hp.x, hp.y - 34, 'CLANG!', '#ffd9a0');
+  game.shake = 7;
+  Snd.clang();
+  raavanSay(pick(TAUNT_BLOCK), 4.0);
+  beginResolve('block', 1.1);
+}
+
+function shotMissed(fx, fy){
+  addFloater(fx === undefined ? BOW.x + (RAV.x - BOW.x) * 0.55 : fx,
+             fy === undefined ? 250 : fy, 'MISS', '#ffb27a');
+  raavanSay(pick(TAUNT_MISS), 3.8);
+  beginResolve('miss', 0.85);
+}
+
+function startBurn(){
+  game.state = 'burn';
+  game.burnT = 0;
+  game.shake = 30;
+  game.flash = 1;
+  Snd.roar();
+  setTimeout(function(){ Snd.fire(); }, 120);
+  showToast('लंका जल उठी', 'Raavan falls — Lanka burns!', 3);
+}
+
+function loseGame(){
+  game.state = 'over';
+  game.outcome = 'lose';
+  Snd.lose();
+  setTimeout(showEnd, 1100);
+}
+
+function nextShot(){
+  if (headsLeft() <= 0){ startBurn(); return; }
+  if (game.arrows <= 0){ loseGame(); return; }
+  game.state = 'aim';
+  setWind();
+}
+
+function resetGame(){
+  game.state = 'aim';
+  game.time = 0;
+  game.arrows = TOTAL_ARROWS;
+  game.shots = 0;
+  game.charging = false;
+  game.charge = 0;
+  game.power = 0;
+  game.aimAngle = -0.35;
+  game.shake = 0;
+  game.burnT = 0;
+  game.reunionT = 0;
+  game.flash = 0;
+  game.ramX = 178;
+  game.sitaX = 1230;
+  game.sitaVisible = false;
+  game.celebrate = false;
+  game.stuck = null;
+  game.stuckGround = null;
+  game.arrow = null;
+  game.outcome = null;
+  game.say = null;
+  game.tauntTimer = 3.2;
+  game.recent = [];
+  for (var i = 0; i < RAVAN_HEADS.length; i++) RAVAN_HEADS[i].alive = true;
+  sparks.length = 0; wreck.length = 0; floaters.length = 0;
+  setWind();
+  raavanSay(pick(TAUNTS), 4.4);
+}
+
+/* ============================================================
+   Update
+   ============================================================ */
+function update(dt){
+  game.time += dt;
+  game.shake *= Math.pow(0.0015, dt);
+  if (game.shake < 0.4) game.shake = 0;
+  game.flash = Math.max(0, game.flash - dt * 1.6);
+
+  if (game.toast){
+    game.toast.t += dt;
+    if (game.toast.t > game.toast.dur) game.toast = null;
+  }
+  if (game.say){
+    game.say.t += dt;
+    if (game.say.t > game.say.dur + 0.35) game.say = null;
+  }
+  for (var fi = floaters.length - 1; fi >= 0; fi--){
+    floaters[fi].age += dt;
+    if (floaters[fi].age >= floaters[fi].life) floaters.splice(fi, 1);
+  }
+
+  /* Raavan keeps taunting while he still has heads */
+  if (headsLeft() > 0 && game.state !== 'intro'){
+    if (!game.say){
+      game.tauntTimer -= dt;
+      if (game.tauntTimer <= 0){
+        raavanSay(pick(TAUNTS), 4.6);
+        game.tauntTimer = rnd(7, 10);
+      }
+    }
+  }
+
+  // ---- background fire ----
+  var intensity = game.state === 'burn' ? 1.5 : (game.state === 'reunion' || game.state === 'over' ? 0.7 : 1);
+  var wantFlames = Math.floor(130 * intensity);
+  var gen = Math.min(9, Math.ceil(wantFlames / 22) + 1);
+  for (var i = 0; i < gen; i++){
+    if (flames.length < wantFlames){
+      var b = buildings[(Math.random() * buildings.length) | 0];
+      flames.push(spawnFlame(b.x + Math.random() * b.w, b.yBase + 4, b.yBase > GROUND - 60 ? 1 : 0.7));
+    }
+  }
+  for (var s2 = 0; s2 < 2; s2++){
+    if (embers.length < 70){
+      var b2 = buildings[(Math.random() * buildings.length) | 0];
+      embers.push(spawnEmber(b2.x + Math.random() * b2.w, b2.yBase, 1));
+    }
+    if (smokes.length < 30){
+      var b3 = buildings[(Math.random() * buildings.length) | 0];
+      smokes.push(spawnSmoke(b3.x + Math.random() * b3.w, b3.yBase - 30, 1));
+    }
+  }
+
+  // ---- smouldering stumps of the heads already destroyed ----
+  if (game.state === 'aim' || game.state === 'fly' || game.state === 'resolve'){
+    for (var hh = 0; hh < RAVAN_HEADS.length; hh++){
+      var dh = RAVAN_HEADS[hh];
+      if (dh.alive) continue;
+      if (Math.random() < 0.34) flames.push(spawnFlame(dh.x + rnd(-9, 9), dh.y + rnd(-7, 5), 0.55));
+      if (Math.random() < 0.16) embers.push(spawnEmber(dh.x + rnd(-6, 6), dh.y, 0.9));
+      if (Math.random() < 0.05) smokes.push(spawnSmoke(dh.x, dh.y - 12, 0.5));
+    }
+  }
+
+  stepParticles(flames, dt, 26, 0.6);
+  stepParticles(embers, dt, 10, 0.2);
+  stepParticles(smokes, dt, 4, 0.35);
+  stepParticles(wreck, dt, 60, 0.4);
+  stepParticles(sparks, dt, 220, 0.9);
+
+  // ---- aim / charge ----
+  if (game.state === 'aim'){
+    var want = Math.atan2(pointer.y - BOW.y, pointer.x - BOW.x);
+    want = clamp(want, -1.48, 0.42);
+    game.aimAngle = lerp(game.aimAngle, want, Math.min(1, dt * 22));
+    if (game.charging){
+      var before = game.power;
+      game.charge += dt;
+      game.power = clamp(game.charge / 1.15, 0.12, 1);
+      if (Math.floor(before * 10) !== Math.floor(game.power * 10) && Math.random() < 0.7){
+        Snd.draw(game.power);
+      }
+    } else {
+      game.power = clamp(game.power - dt * 3, 0.12, 1);
+      game.charge = 0;
+    }
+  }
+
+  // ---- arrow flight ----
+  if (game.state === 'fly' && game.arrow){
+    var a = game.arrow;
+    a.age += dt;
+    a.vx += game.wind * dt;
+    a.vy += G * dt;
+    a.x += a.vx * dt;
+    a.y += a.vy * dt;
+    a.rot = Math.atan2(a.vy, a.vx);
+
+    a.trail.push({ x: a.x, y: a.y });
+    if (a.trail.length > 22) a.trail.shift();
+
+    if (Math.random() < 0.7){
+      sparks.push(spawnSpark(a.x - Math.cos(a.rot) * 16, a.y - Math.sin(a.rot) * 16, 70));
+    }
+
+    var tipX = a.x + Math.cos(a.rot) * 17;
+    var tipY = a.y + Math.sin(a.rot) * 17;
+    var hit = hitTest(tipX, tipY);
+
+    if (hit && hit.kind === 'head'){ headDown(hit.head); }
+    else if (hit){ bodyBlocked({ x: tipX, y: tipY }); }
+    else if (a.y >= GROUND - 2){
+      game.stuckGround = { x: a.x, y: GROUND - 2, rot: a.rot };
+      game.arrow = null;
+      game.shake = 6;
+      for (var d = 0; d < 16; d++) sparks.push(spawnSpark(a.x, GROUND - 2, 150));
+      Snd.noise(0.18, 0.16, 500, 'lowpass', 120);
+      shotMissed(game.stuckGround.x, GROUND - 30);
+    } else if (a.x > W + 240 || a.x < -240 || a.age > 6){
+      shotMissed();
+    }
+  }
+
+  // ---- resolving a shot ----
+  if (game.state === 'resolve'){
+    game.resolveT += dt;
+    if (game.resolveT >= game.resolveDur) nextShot();
+  }
+
+  // ---- all heads gone: Raavan burns ----
+  if (game.state === 'burn'){
+    game.burnT = Math.min(1, game.burnT + dt / 2.9);
+    var bt = game.burnT;
+    var spawn = 5 + Math.floor(bt * 16);
+    for (var f = 0; f < spawn; f++){
+      var rx = RAV.x + rnd(-95, 95);
+      var ry = rnd(250, GROUND - 8);
+      flames.push(spawnFlame(rx, ry, 1.35));
+      if (Math.random() < 0.5) embers.push(spawnEmber(rx, ry, 1.3));
+    }
+    if (Math.random() < 0.6) smokes.push(spawnSmoke(RAV.x + rnd(-90, 90), rnd(240, 520), 1.3));
+    if (Math.random() < 0.55){
+      wreck.push({
+        x: RAV.x + rnd(-90, 90), y: rnd(250, GROUND - 20),
+        vx: rnd(-40, 40), vy: -rnd(20, 90), r: rnd(3, 9),
+        life: rnd(1.2, 3), age: 0, rot: rnd(0, 6.28), vr: rnd(-3, 3)
+      });
+    }
+    if (game.stuck) game.stuck.t += dt;
+    game.shake = Math.max(game.shake, 6 * (1 - bt) + 1.5);
+
+    if (bt >= 1){
+      game.state = 'reunion';
+      game.reunionT = 0;
+      game.stuck = null;
+      game.sitaVisible = true;
+      for (var q = 0; q < 120; q++) embers.push(spawnEmber(RAV.x + rnd(-110, 110), rnd(250, GROUND), 1.6));
+      showToast('सीता मुक्त हुई', 'Sita is free', 3);
+    }
+  }
+
+  // ---- reunion ----
+  if (game.state === 'reunion'){
+    game.reunionT += dt;
+    var t = game.reunionT;
+    var p = clamp(t / 4.2, 0, 1);
+    var e = easeInOut(p);
+    game.ramX = lerp(178, 636, e);
+    game.sitaX = lerp(1230, 706, e);
+    game.ramX += Math.sin(t * 9) * (p < 1 ? 1.6 : 0);
+    game.celebrate = p > 0.98;
+
+    if (t > 4.2 && Math.random() < 0.55){
+      var ang = rnd(-Math.PI * 0.85, -Math.PI * 0.15);
+      sparks.push({
+        x: 671 + rnd(-40, 40), y: 420 + rnd(-40, 40),
+        vx: Math.cos(ang) * rnd(20, 70), vy: rnd(-60, -18),
+        life: rnd(1.4, 2.8), age: 0, hue: rnd(320, 360), r: rnd(3, 7), petal: true
+      });
+    }
+    if (t > 6.4 && game.state === 'reunion'){
+      game.state = 'over';
+      game.outcome = 'win';
+      Snd.chime();
+      setTimeout(showEnd, 900);
+    }
+  }
+}
+
+function stepParticles(arr, dt, grav, drag){
+  for (var i = arr.length - 1; i >= 0; i--){
+    var p = arr[i];
+    p.age += dt;
+    if (p.age >= p.life){ arr.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.petal){
+      p.vy += 40 * dt;
+      p.vx += Math.sin((p.age + i) * 3) * 12 * dt;
+    } else {
+      p.vy += grav * dt;
+      p.vx *= (1 - drag * dt);
+      p.vy *= (1 - drag * dt * 0.5);
+    }
+    if (p.grow) p.r += p.grow * dt;
+    if (p.rot !== undefined && p.vr) p.rot += p.vr * dt;
+    if (p.y > GROUND && !p.petal && arr !== flames){ p.y = GROUND; p.vy *= -0.18; p.vx *= 0.6; }
+  }
+}
+
+/* ============================================================
+   Drawing — the burning city
+   ============================================================ */
+function drawSky(){
+  var g = ctx.createLinearGradient(0, 0, 0, GROUND);
+  g.addColorStop(0, '#0a0410');
+  g.addColorStop(0.32, '#2a0a10');
+  g.addColorStop(0.62, '#6b1a0c');
+  g.addColorStop(0.86, '#b8430c');
+  g.addColorStop(1, '#f08a1e');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, GROUND + 2);
+
+  ctx.save();
+  ctx.globalAlpha = 0.16;
+  for (var i = 0; i < smokes.length; i++){
+    var s = smokes[i], a = 1 - s.age / s.life;
+    ctx.fillStyle = '#3a2018';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * (0.6 + a * 0.7), 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  var hg = ctx.createLinearGradient(0, GROUND - 260, 0, GROUND);
+  hg.addColorStop(0, 'rgba(255,120,20,0)');
+  hg.addColorStop(1, 'rgba(255,140,30,0.42)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, GROUND - 260, W, 260);
+}
+
+function drawBuildings(){
+  for (var i = 0; i < buildings.length; i++){
+    var b = buildings[i];
+    ctx.globalAlpha = b.alpha;
+    ctx.fillStyle = b.color;
+    var top = b.yBase - b.h;
+    ctx.fillRect(b.x, top, b.w, b.h);
+    if (b.type === 'dome'){
+      ctx.beginPath();
+      ctx.ellipse(b.x + b.w / 2, top, b.w / 2, b.w * 0.42, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(b.x + b.w / 2 - 2, top - b.w * 0.72, 4, b.w * 0.72);
+    } else if (b.type === 'spire'){
+      ctx.beginPath();
+      ctx.moveTo(b.x, top);
+      ctx.lineTo(b.x + b.w / 2, top - b.w * 0.85);
+      ctx.lineTo(b.x + b.w, top);
+      ctx.closePath();
+      ctx.fill();
+    }
+    var flick = 0.55 + 0.45 * Math.sin(game.time * 6 + i * 1.7) * Math.sin(game.time * 2.3 + i);
+    for (var w = 0; w < b.win.length; w++){
+      var wn = b.win[w];
+      ctx.globalAlpha = b.alpha * (0.35 + 0.6 * Math.max(0.15, flick));
+      ctx.fillStyle = i % 3 === 0 ? '#ffb347' : '#ff7a1a';
+      ctx.fillRect(wn.x, wn.y, wn.s, wn.s * 1.5);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  var g = ctx.createLinearGradient(0, GROUND - 100, 0, GROUND + 10);
+  g.addColorStop(0, 'rgba(255,90,0,0)');
+  g.addColorStop(1, 'rgba(255,150,40,0.55)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, GROUND - 100, W, 110);
+}
+
+function drawFire(){
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (var i = 0; i < flames.length; i++){
+    var f = flames[i];
+    var a = 1 - f.age / f.life;
+    var spr = f.hue < 28 ? SPR_HOT : SPR_COOL;
+    var size = f.r * 2.4;
+    ctx.globalAlpha = clamp(a, 0, 1) * 0.95;
+    ctx.drawImage(spr, f.x - size / 2, f.y - size / 2, size, size);
+  }
+  ctx.globalAlpha = 1;
+
+  for (var j = 0; j < embers.length; j++){
+    var e = embers[j];
+    var ea = 1 - e.age / e.life;
+    var es = e.r * 7;
+    ctx.globalAlpha = clamp(ea, 0, 1);
+    ctx.drawImage(SPR_SPARK, e.x - es / 2, e.y - es / 2, es, es);
+  }
+  ctx.globalAlpha = 1;
+
+  for (var k = 0; k < sparks.length; k++){
+    var s = sparks[k];
+    var sa = 1 - s.age / s.life;
+    if (s.petal){
+      ctx.fillStyle = 'rgba(255,' + Math.floor(120 + 90 * sa) + ',190,' + (0.9 * sa) + ')';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, s.r, s.r * 0.6, Math.atan2(s.vy, s.vx), 0, 6.2832);
+      ctx.fill();
+    } else {
+      var ss = s.r * 8;
+      ctx.globalAlpha = clamp(sa, 0, 1);
+      ctx.drawImage(SPR_SPARK, s.x - ss / 2, s.y - ss / 2, ss, ss);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  for (var q = 0; q < wreck.length; q++){
+    var wk = wreck[q];
+    var wa = 1 - wk.age / wk.life;
+    ctx.fillStyle = 'rgba(255,' + Math.floor(120 + 90 * wa) + ',60,' + (0.75 * wa) + ')';
+    ctx.save();
+    ctx.translate(wk.x, wk.y);
+    ctx.rotate(wk.rot);
+    ctx.fillRect(-wk.r / 2, -wk.r / 2, wk.r, wk.r);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawGround(){
+  var g = ctx.createLinearGradient(0, GROUND, 0, H);
+  g.addColorStop(0, '#4a1a08');
+  g.addColorStop(0.25, '#210d06');
+  g.addColorStop(1, '#0a0403');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, GROUND, W, H - GROUND);
+
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = 'rgba(255,150,60,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND + 0.5);
+  ctx.lineTo(W, GROUND + 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFloaters(){
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 10;
+  for (var i = 0; i < floaters.length; i++){
+    var f = floaters[i];
+    var k = 1 - f.age / f.life;
+    ctx.globalAlpha = clamp(k * 1.8, 0, 1);
+    ctx.font = 'bold ' + Math.round(21 * hud.s) + "px Georgia, 'Nirmala UI', serif";
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y - (1 - k) * 48);
+  }
+  ctx.restore();
+}
+
+/* ---------- Ram ---------- */
+function drawBowPose(x, y, ang, drawT){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.strokeStyle = '#8a4b16';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(4, -40);
+  ctx.quadraticCurveTo(24, 0, 4, 40);
+  ctx.stroke();
+  ctx.strokeStyle = '#c98a3c';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(4, -40);
+  ctx.quadraticCurveTo(26, 0, 4, 40);
+  ctx.stroke();
+  var pull = -8 - drawT * 26;
+  ctx.strokeStyle = 'rgba(255,240,210,0.85)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(4, -40);
+  ctx.lineTo(pull, 0);
+  ctx.lineTo(4, 40);
+  ctx.stroke();
+  ctx.restore();
+  return pull;
+}
+
+function drawArrowShape(len, glow){
+  ctx.strokeStyle = glow ? '#ffe6a8' : '#d9a95e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-len, 0);
+  ctx.lineTo(len * 0.55, 0);
+  ctx.stroke();
+  ctx.fillStyle = glow ? '#fff4cf' : '#e8e2d6';
+  ctx.beginPath();
+  ctx.moveTo(len * 0.55, 0);
+  ctx.lineTo(len * 0.28, -4.5);
+  ctx.lineTo(len * 0.28, 4.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#e2603a';
+  ctx.beginPath();
+  ctx.moveTo(-len, 0);
+  ctx.lineTo(-len + 12, -7);
+  ctx.lineTo(-len + 4, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-len, 0);
+  ctx.lineTo(-len + 12, 7);
+  ctx.lineTo(-len + 4, 0);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawRamFace(){
+  ctx.fillStyle = '#0f1c2b';
+  ctx.beginPath(); ctx.arc(6, -1, 1.7, 0, 6.28); ctx.fill();
+  ctx.strokeStyle = '#0f1c2b';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(4, 5); ctx.quadraticCurveTo(7, 6.5, 9, 4.5); ctx.stroke();
+}
+
+function drawRam(x, ang, drawT, t){
+  var bob = Math.sin(t * 2.2) * 1.6;
+  ctx.save();
+  ctx.translate(x, GROUND + bob);
+
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(0, 0, 46, 9, 0, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  var legs = game.state === 'reunion' ? Math.sin(t * 9) * 8 : 0;
+  ctx.strokeStyle = '#2f6ea8';
+  ctx.lineWidth = 13;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-9, -6); ctx.lineTo(-11 + legs, -62); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(11, -6); ctx.lineTo(13 - legs, -62); ctx.stroke();
+
+  ctx.fillStyle = '#f0b429';
+  ctx.beginPath();
+  ctx.moveTo(-20, -52); ctx.lineTo(20, -52); ctx.lineTo(23, -84);
+  ctx.lineTo(-23, -84); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#d99a12';
+  ctx.fillRect(-22, -58, 44, 6);
+
+  ctx.fillStyle = '#3f82c4';
+  ctx.beginPath();
+  ctx.moveTo(-19, -84); ctx.lineTo(19, -84); ctx.lineTo(24, -122);
+  ctx.lineTo(-22, -122); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd76e';
+  ctx.beginPath(); ctx.arc(2, -104, 6, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = '#ffd76e'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-14, -126); ctx.quadraticCurveTo(2, -110, 16, -126); ctx.stroke();
+  ctx.fillRect(-24, -126, 14, 8);
+  ctx.fillRect(14, -126, 12, 8);
+
+  ctx.save();
+  ctx.rotate(-0.5);
+  ctx.fillStyle = '#7a4a18';
+  ctx.fillRect(-32, -140, 12, 46);
+  ctx.strokeStyle = '#f0e3c0'; ctx.lineWidth = 2.4;
+  for (var q = 0; q < 3; q++){
+    ctx.beginPath();
+    ctx.moveTo(-29 + q * 4, -140);
+    ctx.lineTo(-31 + q * 4, -158);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  var hx = 3, hy = -144;
+  ctx.fillStyle = '#5b9fd8';
+  ctx.beginPath(); ctx.arc(hx, hy, 15, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#16202e';
+  ctx.beginPath(); ctx.arc(hx - 2, hy - 3, 15, Math.PI * 0.95, Math.PI * 2.1); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hx - 13, hy + 6, 5, 9, 0.3, 0, 6.2832); ctx.fill();
+  ctx.save(); ctx.translate(hx, hy); drawRamFace(); ctx.restore();
+  ctx.fillStyle = '#ffd76e';
+  ctx.beginPath();
+  ctx.moveTo(hx - 15, hy - 10);
+  ctx.lineTo(hx - 11, hy - 30);
+  ctx.lineTo(hx - 4, hy - 20);
+  ctx.lineTo(hx + 4, hy - 34);
+  ctx.lineTo(hx + 10, hy - 21);
+  ctx.lineTo(hx + 15, hy - 30);
+  ctx.lineTo(hx + 16, hy - 10);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e0433a';
+  ctx.beginPath(); ctx.arc(hx + 2, hy - 14, 3.4, 0, 6.2832); ctx.fill();
+
+  ctx.strokeStyle = '#5b9fd8';
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  if (game.celebrate){
+    ctx.beginPath(); ctx.moveTo(-6, -122); ctx.lineTo(-26, -160); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, -122); ctx.lineTo(30, -158); ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  var sx = 14, sy = -120;
+  var ex = sx + Math.cos(ang) * 34;
+  var ey = sy + Math.sin(ang) * 34;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  var hxx = ex - Math.cos(ang) * (14 + drawT * 20);
+  var hyy = ey - Math.sin(ang) * (14 + drawT * 20);
+  ctx.beginPath();
+  ctx.moveTo(sx - 8, sy + 2);
+  ctx.quadraticCurveTo((sx + hxx) / 2 - 12, (sy + hyy) / 2 - 12, hxx, hyy);
+  ctx.stroke();
+
+  var p = drawBowPose(ex, ey, ang, drawT);
+
+  if ((game.state === 'aim' || game.state === 'intro') && game.arrow === null && game.arrows > 0){
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.rotate(ang);
+    ctx.translate(p + 4, 0);
+    ctx.globalAlpha = 0.95;
+    ctx.shadowColor = 'rgba(255,190,90,0.9)';
+    ctx.shadowBlur = 12 + game.power * 16;
+    drawArrowShape(30, true);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/* ---------- Sita ---------- */
+function drawSita(x, t){
+  var bob = Math.abs(Math.sin(t * 5)) * 2.5;
+  ctx.save();
+  ctx.translate(x, GROUND - bob);
+
+  ctx.save();
+  ctx.globalAlpha = 0.35; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(0, bob, 26, 7, 0, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = '#d6273f';
+  ctx.beginPath();
+  ctx.moveTo(-21, 0); ctx.lineTo(21, 0);
+  ctx.lineTo(16, -74); ctx.lineTo(-16, -74);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd76e';
+  ctx.fillRect(-21, -5, 42, 5);
+  ctx.beginPath();
+  ctx.moveTo(-16, -74); ctx.lineTo(16, -74); ctx.lineTo(14, -92);
+  ctx.lineTo(-14, -92); ctx.closePath();
+  ctx.fillStyle = '#e83a52'; ctx.fill();
+  ctx.fillStyle = '#b91d34';
+  ctx.beginPath();
+  ctx.moveTo(-14, -88); ctx.lineTo(-2, -88); ctx.lineTo(-4, -40);
+  ctx.lineTo(-15, -44); ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = '#e8b98f';
+  ctx.lineWidth = 8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-12, -82); ctx.lineTo(-4, -98); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(12, -82); ctx.lineTo(4, -98); ctx.stroke();
+  ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(-5, -98); ctx.lineTo(-2, -112); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(5, -98); ctx.lineTo(2, -112); ctx.stroke();
+
+  ctx.fillStyle = '#e8b98f';
+  ctx.beginPath(); ctx.arc(0, -114, 12, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#161018';
+  ctx.beginPath(); ctx.arc(0, -117, 12.5, Math.PI * 0.9, Math.PI * 2.15); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-11, -100, 5, 16, 0.16, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(11, -100, 5, 16, -0.16, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = 'rgba(230,60,90,0.55)';
+  ctx.beginPath(); ctx.arc(0, -117, 15, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.fillStyle = '#3a2018';
+  ctx.beginPath(); ctx.arc(-4, -115, 1.6, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(4, -115, 1.6, 0, 6.28); ctx.fill();
+  ctx.fillStyle = '#d62a3c';
+  ctx.beginPath(); ctx.arc(0, -121, 2, 0, 6.28); ctx.fill();
+  ctx.fillStyle = '#ffd76e';
+  ctx.beginPath(); ctx.arc(0, -127, 2.4, 0, 6.28); ctx.fill();
+
+  ctx.restore();
+}
+
+/* ============================================================
+   Raavan — ten heads, each one killable
+   ============================================================ */
+function drawStump(h, t){
+  ctx.save();
+  ctx.translate(h.x, h.y);
+
+  ctx.fillStyle = '#160b08';
+  ctx.beginPath(); ctx.arc(0, 0, 14, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#2a1209';
+  ctx.beginPath(); ctx.arc(0, 3, 12, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#0d0605';
+  ctx.beginPath(); ctx.arc(0, -1, 9, 0, 6.2832); ctx.fill();
+
+  var pulse = 0.5 + 0.5 * Math.sin(t * 3.4 + h.phase);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.35 + 0.4 * pulse;
+  ctx.drawImage(SPR_HOT, -16, -16, 32, 32);
+  ctx.globalAlpha = 0.75;
+  ctx.strokeStyle = 'rgba(255,150,50,' + (0.45 + 0.4 * pulse) + ')';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-7, -3); ctx.lineTo(0, 5); ctx.lineTo(6, -4);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(120,120,120,' + (0.35 + 0.25 * pulse) + ')';
+  ctx.beginPath(); ctx.arc(0, -8 - pulse * 4, 2.4, 0, 6.2832); ctx.fill();
+  ctx.restore();
+}
+
+function drawHead(h, t, rage, bt){
+  var dy = Math.sin(t * (1.7 + rage * 1.4) + h.phase) * (2 + rage * 2.4);
+  ctx.save();
+  ctx.translate(h.x, h.y + dy);
+  ctx.rotate(Math.sin(t * 2 + h.phase) * 0.05);
+
+  ctx.fillStyle = bt > 0 ? '#5a1c08' : '#42201c';
+  ctx.beginPath(); ctx.arc(0, 0, h.r, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = bt > 0 ? '#43140a' : '#31150f';
+  ctx.beginPath(); ctx.arc(0, 4, h.r * 0.86, 0, 6.2832); ctx.fill();
+
+  ctx.fillStyle = '#120709';
+  ctx.beginPath(); ctx.arc(0, -3, h.r * 1.06, Math.PI * 0.98, Math.PI * 2.02); ctx.fill();
+
+  // eyes glow hotter as his heads are cut away
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  var eg = (0.7 + 0.3 * Math.sin(t * 5 + h.phase)) * (0.85 + rage * 0.6);
+  ctx.fillStyle = 'rgba(255,60,20,' + (0.9 * eg) + ')';
+  ctx.beginPath(); ctx.arc(-6.5, -2, 3.4, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.arc(6.5, -2, 3.4, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = 'rgba(255,200,120,' + eg + ')';
+  ctx.beginPath(); ctx.arc(-6.5, -2, 1.3, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.arc(6.5, -2, 1.3, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#120709'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(-5, 6); ctx.quadraticCurveTo(0, 3, 5, 6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-5, 11); ctx.quadraticCurveTo(0, 15, 5, 11); ctx.stroke();
+
+  var cg = ctx.createLinearGradient(0, -h.r - 20, 0, -h.r + 4);
+  cg.addColorStop(0, bt > 0 ? '#ffb340' : '#ffe9a0');
+  cg.addColorStop(1, bt > 0 ? '#a34c10' : '#c99524');
+  ctx.fillStyle = cg;
+  ctx.beginPath();
+  ctx.moveTo(-h.r * 0.95, -h.r * 0.72);
+  ctx.lineTo(-h.r * 0.7, -h.r - 13);
+  ctx.lineTo(-h.r * 0.24, -h.r - 4);
+  ctx.lineTo(0, -h.r - 19);
+  ctx.lineTo(h.r * 0.24, -h.r - 4);
+  ctx.lineTo(h.r * 0.7, -h.r - 13);
+  ctx.lineTo(h.r * 0.95, -h.r * 0.72);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = bt > 0 ? '#ff8a2a' : '#e0433a';
+  ctx.beginPath(); ctx.arc(0, -h.r - 2, 2.6, 0, 6.2832); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawRaavan(){
+  var bt = game.state === 'burn' ? game.burnT
+         : ((game.state === 'reunion' || (game.state === 'over' && game.outcome === 'win')) ? 1 : 0);
+  if (bt >= 1) return;
+
+  var t = game.time;
+  var rage = raavanRage();
+  var sway = Math.sin(t * 1.4) * (3 + rage * 2);
+  var alpha = 1 - bt * 0.92;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  ctx.save();
+  ctx.globalAlpha = 0.4 * alpha;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(RAV.x, GROUND, 120, 16, 0, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  // cape
+  ctx.fillStyle = bt > 0 ? '#3a0f0a' : '#25060a';
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 70, 420 + sway);
+  ctx.quadraticCurveTo(RAV.x - 170, 540, RAV.x - 120, GROUND);
+  ctx.lineTo(RAV.x + 120, GROUND);
+  ctx.quadraticCurveTo(RAV.x + 170, 540, RAV.x + 70, 420 + sway);
+  ctx.closePath();
+  ctx.fill();
+
+  // legs
+  ctx.fillStyle = bt > 0 ? '#3a1408' : '#31140f';
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 62, 520); ctx.lineTo(RAV.x - 18, 520);
+  ctx.lineTo(RAV.x - 30, GROUND); ctx.lineTo(RAV.x - 78, GROUND);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(RAV.x + 18, 520); ctx.lineTo(RAV.x + 62, 520);
+  ctx.lineTo(RAV.x + 78, GROUND); ctx.lineTo(RAV.x + 30, GROUND);
+  ctx.closePath(); ctx.fill();
+
+  // torso
+  var torso = ctx.createLinearGradient(RAV.x - 95, 0, RAV.x + 95, 0);
+  torso.addColorStop(0, '#1d0a0a');
+  torso.addColorStop(0.5, bt > 0 ? '#5b1a08' : '#3b1512');
+  torso.addColorStop(1, '#1d0a0a');
+  ctx.fillStyle = torso;
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 96, 412);
+  ctx.quadraticCurveTo(RAV.x, 380, RAV.x + 96, 412);
+  ctx.lineTo(RAV.x + 74, 545);
+  ctx.quadraticCurveTo(RAV.x, 575, RAV.x - 74, 545);
+  ctx.closePath();
+  ctx.fill();
+
+  // armour
+  ctx.fillStyle = bt > 0 ? '#7a2a10' : '#8a6a24';
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 62, 452); ctx.lineTo(RAV.x + 62, 452);
+  ctx.lineTo(RAV.x + 52, 520); ctx.lineTo(RAV.x - 52, 520);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = bt > 0 ? '#57200c' : '#6d5220';
+  for (var b2 = 0; b2 < 4; b2++) ctx.fillRect(RAV.x - 58 + b2 * 30, 458, 22, 56);
+
+  // necklace
+  ctx.strokeStyle = '#e0b13c'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 62, 418);
+  ctx.quadraticCurveTo(RAV.x, 470, RAV.x + 62, 418);
+  ctx.stroke();
+  ctx.fillStyle = '#e8c860';
+  ctx.beginPath(); ctx.arc(RAV.x, 462, 9, 0, 6.2832); ctx.fill();
+
+  // arms
+  ctx.strokeStyle = bt > 0 ? '#4a1a0c' : '#3b1512';
+  ctx.lineWidth = 20; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(RAV.x - 88, 424);
+  ctx.quadraticCurveTo(RAV.x - 150, 400, RAV.x - 168, 330);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(RAV.x + 88, 424);
+  ctx.quadraticCurveTo(RAV.x + 150, 400, RAV.x + 168, 330);
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(RAV.x - 174, 312);
+  ctx.rotate(Math.sin(t * 1.6) * 0.14);
+  ctx.fillStyle = '#c9a227';
+  ctx.fillRect(-5, 0, 10, 54);
+  ctx.beginPath(); ctx.arc(0, -12, 24, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = '#9a7a16';
+  ctx.beginPath(); ctx.arc(-9, -18, 7, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(9, -14, 7, 0, 6.28); ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(RAV.x + 176, 306);
+  ctx.rotate(-0.3 + Math.sin(t * 1.9) * 0.12);
+  ctx.fillStyle = '#8f4a12'; ctx.fillRect(-6, 0, 12, 30);
+  ctx.fillStyle = '#dfe6ee';
+  ctx.beginPath();
+  ctx.moveTo(-7, 0); ctx.lineTo(7, 0); ctx.lineTo(3, -96); ctx.lineTo(0, -108);
+  ctx.lineTo(-3, -96); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // the ten heads
+  for (var i = 0; i < RAVAN_HEADS.length; i++){
+    var h = RAVAN_HEADS[i];
+    if (h.alive) drawHead(h, t, rage, bt);
+    else drawStump(h, t);
+  }
+
+  ctx.restore();
+
+  // fire overlay while burning
+  if (bt > 0){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.55 * bt;
+    var fg = ctx.createLinearGradient(RAV.x, 250, RAV.x, GROUND);
+    fg.addColorStop(0, 'rgba(255,220,120,0.9)');
+    fg.addColorStop(0.45, 'rgba(255,120,20,0.75)');
+    fg.addColorStop(1, 'rgba(180,20,0,0.4)');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.ellipse(RAV.x, (250 + GROUND) / 2, 150 * (0.7 + bt * 0.5),
+                (GROUND - 240) / 2 * (0.75 + bt * 0.35), 0, 0, 6.2832);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = bt * 0.7;
+    ctx.strokeStyle = 'rgba(255,170,60,0.9)';
+    ctx.lineWidth = 2;
+    for (var c = 0; c < 10; c++){
+      var rx = RAV.x + Math.sin(c * 2.7) * 80;
+      var ry = 280 + c * 34;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx + Math.sin(c + t * 2) * 18, ry + 26);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   Arrows & aim guide
+   ============================================================ */
+function drawFlyingArrow(){
+  var a = game.arrow;
+  if (!a) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (var i = 0; i < a.trail.length; i++){
+    var p = a.trail[i], f = i / a.trail.length;
+    ctx.fillStyle = 'rgba(255,' + Math.floor(150 + f * 90) + ',90,' + (f * 0.5) + ')';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.5 + f * 4, 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.rot);
+  ctx.shadowColor = 'rgba(255,170,60,0.95)';
+  ctx.shadowBlur = 22;
+  drawArrowShape(34, true);
+  ctx.restore();
+}
+
+function drawStuckGroundArrow(){
+  if (!game.stuckGround) return;
+  var s = game.stuckGround;
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.rot);
+  drawArrowShape(30, false);
+  ctx.restore();
+}
+
+function drawStuckArrow(){
+  if (!game.stuck) return;
+  var s = game.stuck;
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.rot);
+  ctx.shadowColor = s.armour ? 'rgba(255,230,150,0.9)' : 'rgba(255,170,60,0.9)';
+  ctx.shadowBlur = 20;
+  drawArrowShape(30, !s.armour);
+  ctx.restore();
+}
+
+function drawAimGuide(){
+  if (game.state !== 'aim' || !game.charging) return;
+  var a = game.aimAngle, sp = arrowSpeed();
+  var x = BOW.x + Math.cos(a) * 34, y = BOW.y + Math.sin(a) * 34;
+  var vx = Math.cos(a) * sp, vy = Math.sin(a) * sp;
+  var dt = 1 / 60;
+  var pts = [];
+  for (var i = 0; i < 34; i++){
+    vx += game.wind * dt;
+    vy += G * dt;
+    x += vx * dt;
+    y += vy * dt;
+    if (y > GROUND || x > W + 40) break;
+    pts.push({ x: x, y: y });
+  }
+  for (var j = 0; j < pts.length; j++){
+    var f = 1 - j / pts.length;
+    ctx.fillStyle = 'rgba(255,220,140,' + (0.55 * f) + ')';
+    ctx.beginPath();
+    ctx.arc(pts[j].x, pts[j].y, 2.6 * f + 0.8, 0, 6.2832);
+    ctx.fill();
+  }
+}
+
+/* ============================================================
+   HUD — drawn in a 1-unit-per-CSS-pixel space so it stays
+   readable on phones of every size
+   ============================================================ */
+function rr(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function wrapText(text, maxW){
+  var words = String(text).split(' ');
+  var lines = [], cur = '';
+  for (var i = 0; i < words.length; i++){
+    var test = cur ? cur + ' ' + words[i] : words[i];
+    if (ctx.measureText(test).width > maxW && cur){
+      lines.push(cur);
+      cur = words[i];
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function drawQuiverIcon(x, y, live){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = live ? 1 : 0.25;
+  ctx.strokeStyle = '#c98a3c'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-7, -13); ctx.quadraticCurveTo(8, 0, -7, 13); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,240,210,0.8)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-7, -13); ctx.lineTo(-10, 0); ctx.lineTo(-7, 13); ctx.stroke();
+  ctx.rotate(-0.6);
+  ctx.strokeStyle = live ? '#e8d3a0' : '#7a6a50'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(15, 0); ctx.stroke();
+  ctx.fillStyle = '#ef6a3a';
+  ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-7, -4.5); ctx.lineTo(-7, 4.5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawMiniHead(x, y, alive){
+  var r = 7.4;
+  ctx.save();
+  ctx.translate(x, y);
+  if (alive){
+    ctx.shadowColor = 'rgba(255,90,30,0.9)';
+    ctx.shadowBlur = 9;
+    ctx.fillStyle = '#5a2318';
+    ctx.beginPath(); ctx.arc(0, 1, r, 0, 6.2832); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,90,40,0.95)';
+    ctx.beginPath(); ctx.arc(-2.6, 0, 1.5, 0, 6.28); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.6, 0, 1.5, 0, 6.28); ctx.fill();
+    ctx.fillStyle = '#e0b13c';
+    ctx.beginPath();
+    ctx.moveTo(-r, -r * 0.6);
+    ctx.lineTo(-r * 0.5, -r - 5);
+    ctx.lineTo(0, -r * 0.9);
+    ctx.lineTo(r * 0.5, -r - 5);
+    ctx.lineTo(r, -r * 0.6);
+    ctx.closePath(); ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(70,58,52,0.75)';
+    ctx.beginPath(); ctx.arc(0, 1, r, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,140,60,0.6)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-3.4, -2.2); ctx.lineTo(3.4, 4.2);
+    ctx.moveTo(3.4, -2.2); ctx.lineTo(-3.4, 4.2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHUD(){
+  var s = hud.s, VW = hud.vw, VH = hud.vh;
+  ctx.save();
+  ctx.scale(s, s);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  if (!hud.compact){
+    ctx.textAlign = 'center';
+    ctx.font = 'italic 17px Georgia, serif';
+    ctx.fillStyle = 'rgba(255,215,150,0.62)';
+    ctx.fillText('Yuddha Kanda — The Ten Heads of Raavan', VW / 2, 28);
+    ctx.textAlign = 'left';
+  }
+
+  // arrows remaining
+  drawQuiverIcon(34, 62, game.arrows > 0);
+  ctx.font = 'bold 23px Georgia, serif';
+  if (game.arrows <= 2 && game.arrows > 0){
+    var pu = 0.6 + 0.4 * Math.sin(game.time * 7);
+    ctx.fillStyle = 'rgba(255,' + Math.floor(90 + 120 * pu) + ',60,1)';
+  } else {
+    ctx.fillStyle = game.arrows > 0 ? '#ffd479' : '#7a6a50';
+  }
+  ctx.fillText('\u00d7 ' + game.arrows, 58, 70);
+
+  // ten-head tracker
+  var hy = 102, hx0 = 34;
+  ctx.font = 'bold 12px Georgia, serif';
+  ctx.fillStyle = 'rgba(255,215,150,0.75)';
+  ctx.fillText('HEADS', hx0, hy + 5);
+  for (var i = 0; i < RAVAN_HEADS.length; i++){
+    drawMiniHead(hx0 + 60 + i * 19, hy, RAVAN_HEADS[i].alive);
+  }
+  ctx.font = 'bold 15px Georgia, serif';
+  ctx.fillStyle = '#ffcf8a';
+  ctx.fillText(headsLeft() + ' / ' + TOTAL_HEADS, hx0 + 62 + TOTAL_HEADS * 19, hy + 5);
+
+  // wind banner
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 14px Georgia, serif';
+  ctx.fillStyle = 'rgba(255,215,150,0.8)';
+  var wtxt = game.wind === 0 ? 'WIND  ·  CALM'
+           : (game.wind > 0 ? 'WIND  \u2192  ' + Math.abs(Math.round(game.wind))
+                            : '\u2190  WIND  ' + Math.abs(Math.round(game.wind)));
+  ctx.fillText(wtxt, VW - 26, 44);
+
+  var wlen = 26 + Math.abs(game.wind) * 0.9;
+  var sgn = game.wind === 0 ? 0 : (game.wind > 0 ? 1 : -1);
+  ctx.save();
+  ctx.translate(VW - 70, 62);
+  ctx.strokeStyle = 'rgba(255,190,110,0.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-wlen / 2 * sgn, 0); ctx.lineTo(wlen / 2 * sgn, 0); ctx.stroke();
+  if (sgn !== 0){
+    ctx.fillStyle = 'rgba(255,190,110,0.75)';
+    ctx.beginPath();
+    ctx.moveTo(wlen / 2 * sgn, 0);
+    ctx.lineTo(wlen / 2 * sgn - 8 * sgn, -5);
+    ctx.lineTo(wlen / 2 * sgn - 8 * sgn, 5);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // power meter
+  if (game.state === 'aim' && game.charging){
+    var pw = Math.min(270, VW * 0.62), ph = 13;
+    var px = (VW - pw) / 2, py = VH - 46;
+    ctx.fillStyle = 'rgba(10,4,0,0.62)';
+    ctx.fillRect(px - 2, py - 2, pw + 4, ph + 4);
+    var pg = ctx.createLinearGradient(px, 0, px + pw, 0);
+    pg.addColorStop(0, '#ffd88a');
+    pg.addColorStop(0.6, '#ff8c1a');
+    pg.addColorStop(1, '#ff3b00');
+    ctx.fillStyle = pg;
+    ctx.fillRect(px, py, pw * game.power, ph);
+    ctx.strokeStyle = 'rgba(255,220,150,0.85)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px - 2, py - 2, pw + 4, ph + 4);
+    ctx.fillStyle = 'rgba(255,230,180,0.9)';
+    ctx.font = 'bold 12px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('DRAW  ' + Math.round(game.power * 100) + '%', VW / 2, py - 8);
+  }
+
+  // first-shot hint
+  if ((game.state === 'aim' || game.state === 'intro') && !game.charging && game.shots === 0 && game.time < 12){
+    ctx.save();
+    ctx.globalAlpha = clamp(1 - game.time / 12, 0, 0.9) * (0.62 + 0.38 * Math.sin(game.time * 3));
+    ctx.textAlign = 'center';
+    ctx.font = '16px Georgia, serif';
+    ctx.fillStyle = '#ffd9a0';
+    ctx.fillText('Strike the heads — all ten of them  ·  HOLD to draw, RELEASE to loose', VW / 2, VH - 14);
+    ctx.restore();
+  }
+
+  // big toast  (kept clear of Raavan's speech bubble)
+  if (game.toast){
+    var tt = game.toast;
+    var k = clamp(Math.min(1, tt.t / 0.25) * (1 - Math.max(0, (tt.t - (tt.dur - 0.5)) / 0.5)), 0, 1);
+    var tY = hud.compact ? VH * 0.66 : VH * 0.60;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + (hud.compact ? 30 : 40) + "px 'Nirmala UI','Noto Sans Devanagari',Georgia,serif";
+    ctx.shadowColor = 'rgba(255,120,0,0.9)';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = '#ffd479';
+    ctx.fillText(tt.main, VW / 2, tY);
+    ctx.font = (hud.compact ? 16 : 19) + 'px Georgia, serif';
+    ctx.fillStyle = 'rgba(255,225,180,0.92)';
+    ctx.fillText(tt.sub, VW / 2, tY + (hud.compact ? 27 : 33));
+    ctx.restore();
+  }
+
+  // reunion caption
+  if (game.state === 'reunion' && game.reunionT > 4.2){
+    var rk = clamp((game.reunionT - 4.2) / 1.2, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = rk;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + (hud.compact ? 27 : 38) + "px 'Nirmala UI','Noto Sans Devanagari',Georgia,serif";
+    ctx.shadowColor = 'rgba(255,180,60,0.95)';
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = '#ffe79b';
+    ctx.fillText('सीता का पुनर्मिलन', VW / 2, VH * 0.22);
+    ctx.font = (hud.compact ? 15 : 20) + 'px Georgia, serif';
+    ctx.fillStyle = '#ffd9a0';
+    ctx.fillText('Sita reunites with Shri Ram — Jai Shri Ram!', VW / 2, VH * 0.22 + 28);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/* ---------- Raavan's speech bubble ---------- */
+function drawDialogue(){
+  var say = game.say;
+  if (!say || !say.hi) return;
+
+  var s = hud.s, VW = hud.vw, VH = hud.vh;
+  ctx.save();
+  ctx.scale(s, s);
+
+  var a = Math.min(1, say.t / 0.2) *
+          Math.min(1, Math.max(0, (say.dur + 0.35 - say.t) / 0.45));
+  ctx.globalAlpha = clamp(a, 0, 1);
+
+  var pad = 13;
+  var maxW = Math.min(hud.compact ? 380 : 430, Math.max(180, VW - 44));
+  var hiF = 'bold ' + (hud.compact ? 17 : 19) + "px 'Nirmala UI','Noto Sans Devanagari',Georgia,serif";
+  var enF = 'italic ' + (hud.compact ? 13 : 15) + 'px Georgia, serif';
+  var lhHi = hud.compact ? 22 : 25, lhEn = hud.compact ? 17 : 20;
+
+  ctx.font = hiF;
+  var hiLines = wrapText(say.hi, maxW - pad * 2);
+  var w = 0;
+  for (var i = 0; i < hiLines.length; i++) w = Math.max(w, ctx.measureText(hiLines[i]).width);
+  ctx.font = enF;
+  var enLines = say.en ? wrapText(say.en, maxW - pad * 2) : [];
+  for (var j = 0; j < enLines.length; j++) w = Math.max(w, ctx.measureText(enLines[j]).width);
+
+  var bw = Math.min(maxW, w + pad * 2 + 8);
+  var bh = pad * 2 + 12 + hiLines.length * lhHi + (enLines.length ? 6 + enLines.length * lhEn : 0);
+
+  var ax = clamp((RAV.x / W) * VW, 40, VW - 18);
+  var ay = (252 / H) * VH;
+  var bx = clamp(ax + 34 - bw, 12, Math.max(12, VW - 12 - bw));
+  var by = ay - 16 - bh;
+  var tucked = by < 10;
+  if (tucked) by = 10;
+
+  if (!tucked){
+    ctx.fillStyle = 'rgba(30,10,4,0.94)';
+    ctx.beginPath();
+    ctx.moveTo(bx + bw - 46, by + bh - 2);
+    ctx.lineTo(ax, ay);
+    ctx.lineTo(bx + bw - 14, by + bh - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,168,70,0.85)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  var g = ctx.createLinearGradient(bx, by, bx, by + bh);
+  g.addColorStop(0, 'rgba(48,15,6,0.95)');
+  g.addColorStop(1, 'rgba(22,6,4,0.95)');
+  rr(bx, by, bw, bh, 10);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,168,70,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (tucked){
+    var ty0 = clamp(ay, by + 20, by + bh - 8);
+    ctx.fillStyle = 'rgba(30,10,4,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(bx + bw - 14, ty0 - 10);
+    ctx.lineTo(bx + bw + 13, ty0);
+    ctx.lineTo(bx + bw - 14, ty0 + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,168,70,0.85)';
+    ctx.stroke();
+  }
+
+  ctx.font = 'bold 10px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255,180,90,0.95)';
+  ctx.fillText('\u0930\u093e\u0935\u0923 · RAVAN', bx + 12, by - 4);
+
+  var ty = by + pad + 14;
+  ctx.font = hiF;
+  ctx.fillStyle = '#ffdc9a';
+  for (var k2 = 0; k2 < hiLines.length; k2++){
+    ctx.fillText(hiLines[k2], bx + pad + 3, ty);
+    ty += lhHi;
+  }
+  if (enLines.length){
+    ty += 4;
+    ctx.font = enF;
+    ctx.fillStyle = 'rgba(240,196,150,0.85)';
+    for (var m = 0; m < enLines.length; m++){
+      ctx.fillText(enLines[m], bx + pad + 3, ty);
+      ty += lhEn;
+    }
+  }
+
+  ctx.restore();
+}
+
+/* ============================================================
+   Main draw
+   ============================================================ */
+function draw(){
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  var sx = 0, sy = 0;
+  if (game.shake > 0.4){
+    sx = rnd(-game.shake, game.shake);
+    sy = rnd(-game.shake, game.shake) * 0.6;
+  }
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  drawSky();
+  drawBuildings();
+  drawFire();
+  drawGround();
+
+  drawRaavan();
+  drawStuckArrow();
+  drawStuckGroundArrow();
+
+  var ang = (game.state === 'aim' || game.state === 'fly') ? game.aimAngle : -0.4;
+  var drawT = game.state === 'aim' ? game.power : 0;
+  drawRam(game.ramX, ang, drawT, game.time);
+
+  if (game.sitaVisible && (game.state === 'reunion' || game.state === 'over')){
+    drawSita(game.sitaX, game.time);
+  }
+
+  drawFlyingArrow();
+  drawAimGuide();
+  drawFloaters();
+
+  var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.05);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(20,0,0,0.75)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(-40, -40, W + 80, H + 80);
+
+  ctx.restore();
+
+  if (game.flash > 0.01){
+    ctx.fillStyle = 'rgba(255,225,170,' + (game.flash * 0.5) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawHUD();
+  drawDialogue();
+}
+
+/* ============================================================
+   Screens
+   ============================================================ */
+var introEl = document.getElementById('intro');
+var endEl = document.getElementById('endScreen');
+var endTitle = document.getElementById('endTitle');
+var endSub = document.getElementById('endSub');
+var endText = document.getElementById('endText');
+
+function startGame(){
+  Snd.ready();
+  if (isTouch) toggleFullscreen();
+  introEl.classList.add('hidden');
+  endEl.classList.add('hidden');
+  resetGame();
+}
+
+function showEnd(){
+  if (game.outcome === 'win'){
+    endTitle.className = 'ram deva';
+    endTitle.innerHTML = 'जय श्री राम';
+    endSub.textContent = 'Dharma is victorious';
+    endText.innerHTML = 'All ten of Raavan\'s heads are ash. The demon king falls, Lanka burns ' +
+      'to the ground, and Sita is free — she walks into the arms of <b>Shri Ram</b>.<br>' +
+      'His taunts are silent at last.';
+  } else {
+    endTitle.className = '';
+    endTitle.innerHTML = 'Raavan Still Stands';
+    endSub.textContent = 'Your quiver is empty';
+    var left = headsLeft();
+    endText.innerHTML = left + (left === 1 ? ' head still burns' : ' heads still burn') +
+      ' upon his shoulders, and his laughter rolls over Lanka.<br>' +
+      'Steady your breath — and take up the bow once more.';
+  }
+  endEl.classList.remove('hidden');
+}
+
+function restart(){
+  endEl.classList.add('hidden');
+  resetGame();
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('againBtn').addEventListener('click', restart);
+
+var muteBtn = document.getElementById('mute');
+muteBtn.addEventListener('click', function(){
+  Snd.muted = !Snd.muted;
+  muteBtn.innerHTML = Snd.muted ? '&#128263;' : '&#128266;';
+  this.blur();
+});
+
+if (isTouch){
+  document.getElementById('ctrlHint').innerHTML =
+    '<b>Hold</b> anywhere to draw &middot; drag to aim &middot; <b>release</b> to shoot';
+}
+
+/* ============================================================
+   Loop
+   ============================================================ */
+layout();
+checkOrientation();
+resetGame();
+game.state = 'intro';
+game.say = null;      // let the title card breathe; Raavan speaks once the fight begins
+
+var last = performance.now(), acc = 0;
+function frame(now){
+  var dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  acc += dt;
+  var steps = 0;
+  while (acc >= STEP && steps < 5){
+    update(STEP);
+    acc -= STEP;
+    steps++;
+  }
+  if (steps === 5) acc = 0;
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
